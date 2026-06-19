@@ -80,3 +80,18 @@ namespace TriggerBotCFG
 	inline int Delay = 100; // ms
 	inline int HotKey = VK_MENU; // Alt
 }
+
+namespace AnalyticsCFG
+{
+	inline bool Enabled = true;
+	inline ImVec2 WinPos = ImVec2(25.f, 280.f);
+}
+
+namespace WallHackHelperCFG
+{
+	inline bool Enabled = true;
+	inline int SafeDelayMs = 250;     // cold peek: bu sure gectikten sonra yesil
+	inline int PreAimDelayMs = 90;    // pre-aim peek: zaten nisanliysa daha kisa sure
+	inline ImColor UnsafeColor = ImColor(220, 60, 60, 200);
+	inline ImColor SafeColor   = ImColor(80, 200, 80, 200);
+}

@@ -246,6 +246,15 @@ namespace GUI
 							}).detach();
 					}
 
+					PutSwitch("Behavior Meter", 5.f, ImGui::GetFrameHeight() * 1.7, &AnalyticsCFG::Enabled);
+					PutSwitch("WH Helper", 5.f, ImGui::GetFrameHeight() * 1.7, &WallHackHelperCFG::Enabled);
+					if (WallHackHelperCFG::Enabled)
+					{
+						static const int SafeMin = 50, SafeMax = 800;
+						static const int PreAimMin = 50, PreAimMax = 300;
+						PutSliderInt("Cold Peek (ms)", 5.f, &WallHackHelperCFG::SafeDelayMs, &SafeMin, &SafeMax, "%d ms");
+						PutSliderInt("Pre-Aim (ms)", 5.f, &WallHackHelperCFG::PreAimDelayMs, &PreAimMin, &PreAimMax, "%d ms");
+					}
 					PutSwitch("Spectator Mode", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::WorkInSpec);
 					PutSwitch("Team Check", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::TeamCheck);
 					PutSwitch("Anti-Record (OBS)", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::BypassOBS);

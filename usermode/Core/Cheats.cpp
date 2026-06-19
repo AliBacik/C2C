@@ -21,6 +21,8 @@
 #include "../Core/Init.h"
 #include "../Features/ESP.h"
 #include "../Features/Misc.h"
+#include "../Features/Analytics.h"
+#include "../Features/WallHackHelper.h"
 #include "../Core/GUI.h"
 #include "../Helpers/Logger.h"
 
@@ -84,7 +86,18 @@ void Cheats::Run()
 	auto entityResults = ProcessEntities(LocalEntity, LocalPlayerControllerIndex);
 
 	// triggerbot
+	bool tbFired = TriggerBot::g_shooting.load();
 	TriggerBot::Update(LocalEntity, cachedResults);
+	bool tbFiredNow = !tbFired && TriggerBot::g_shooting.load();
+
+	// wallhack helper
+	int crosshairEnt = 0;
+	memoryManager.ReadMemory<int>(LocalPawnAddress + Offset.Pawn.iIDEntIndex, crosshairEnt);
+	WallHackHelper::Update(cachedResults, LocalEntity.Controller.TeamID, crosshairEnt);
+
+	// analytics
+	Analytics::Update(LocalEntity, cachedResults, tbFiredNow);
+	Analytics::Render();
 
 	// render entities
 	HandleEnts(entityResults, LocalEntity, LocalPlayerControllerIndex, GameRadar);
