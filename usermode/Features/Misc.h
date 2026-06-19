@@ -268,6 +268,15 @@ namespace TriggerBot
 		if (!localEntity.IsAlive())
 			return;
 
+		const std::string weapon = GetWeapon(localEntity);
+		if (CheckScopeWeapon(weapon))
+		{
+			bool isScoped = false;
+			memoryManager.ReadMemory<bool>(localEntity.Pawn.Address + Offset.Pawn.isScoped, isScoped);
+			if (!isScoped)
+				return;
+		}
+
 		int crosshairEntIndex = 0;
 		if (!memoryManager.ReadMemory<int>(localEntity.Pawn.Address + Offset.Pawn.iIDEntIndex, crosshairEntIndex))
 			return;
