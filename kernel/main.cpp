@@ -48,34 +48,6 @@ int wmain(const int argc, wchar_t** argv)
 	if (IsDriverRunning(L"\\\\.\\C2C-kmd"))
 		Log::Error("Kernel mode driver is already mapped");
 
-#ifndef _DEBUG
-	int tryCount = 0;
-CHECK_VER://CHECK_VER
-	Log::Info("Checking mapper version...");
-	try
-	{
-		bool result = CheckCheatVersion();
-		Log::PreviousLine();
-		if (result)
-			Log::Fine("Your mapper version is up to date and supported");
-		else
-			Log::Error("Your mapper version is out of support");
-	}
-	catch (const std::exception& error)
-	{
-		Log::PreviousLine();
-		std::string errorMsg = error.what();
-		if (errorMsg.find("bad internet connection") != std::string::npos && tryCount < 3)
-		{
-			Log::Error(errorMsg, false);
-			Log::Info("Reconnecting...");
-			tryCount++;
-			goto CHECK_VER;//CHECK_VER
-		}
-		else
-			Log::Error(errorMsg);
-	}
-#endif
 
 	if (forcePrefs || !CheckWindowsKernelPrefs())
 	{
