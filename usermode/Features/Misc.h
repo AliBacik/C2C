@@ -235,15 +235,23 @@ namespace TriggerBot
 		return local.Pawn.WeaponName;
 	}
 
+	static inline int RandomJitter(int base, int range)
+	{
+		static std::mt19937 rng(std::random_device{}());
+		std::uniform_int_distribution<int> dist(-range, range);
+		return std::max(0, base + dist(rng));
+	}
+
 	static inline void DoShoot()
 	{
 		if (g_shooting.exchange(true))
 			return;
 
 		std::thread([]() {
+			int pressDuration = RandomJitter(14, 8); // 10-22ms arası random, minimum 10ms
 			mouse_open();
 			mouse_move(MOUSE_PRESS, 0, 0, 0);
-			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			std::this_thread::sleep_for(std::chrono::milliseconds(pressDuration));
 			mouse_move(MOUSE_RELEASE, 0, 0, 0);
 			g_shooting = false;
 		}).detach();
@@ -278,7 +286,8 @@ namespace TriggerBot
 			if ((idx + 1) == crosshairEntIndex)
 			{
 				std::thread([delay = TriggerBotCFG::Delay]() {
-					std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+					int jitteredDelay = RandomJitter(delay, 15); // ±15ms random varyasyon
+					std::this_thread::sleep_for(std::chrono::milliseconds(jitteredDelay));
 					DoShoot();
 				}).detach();
 				break;
