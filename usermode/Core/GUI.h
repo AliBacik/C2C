@@ -147,9 +147,6 @@ namespace GUI
 		{
 			ImGui::SetCursorPos(LogoPos);
 			ImGui::Image(ImageID, LogoSize);
-			if (ImGui::IsItemClicked()) {
-				Gui.OpenWebpage("https://github.com/yourusername/C2C");
-			}
 			ImGui::GetWindowDrawList()->AddRect(
 				ImVec2(MenuConfig::WCS.LogoPos.x + ImGui::GetWindowPos().x, MenuConfig::WCS.LogoPos.y + ImGui::GetWindowPos().y),
 				ImVec2(MenuConfig::WCS.LogoPos.x + LogoW + ImGui::GetWindowPos().x, MenuConfig::WCS.LogoPos.y + LogoH + ImGui::GetWindowPos().y),
@@ -264,11 +261,6 @@ namespace GUI
 					ImGui::Separator();
 					ImGui::NewLine();
 
-					if (ImGui::Button("Source Code", { 125.f, 25.f }))
-						Gui.OpenWebpage("https://github.com/yourusername/C2C");
-					ImGui::SameLine();
-					if (ImGui::Button("Contact Author", { 125.f, 25.f }))
-						Gui.OpenWebpage("https://discord.gg/5WcvdzFybD");
 					if (ImGui::Button("Unhook", { 125.f, 25.f }))
 						Init::Client::Exit();
 					ImGui::SameLine();
