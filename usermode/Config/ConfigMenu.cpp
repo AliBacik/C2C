@@ -193,8 +193,6 @@ namespace ConfigMenu {
 		MiscCFG::ShowHeadShootLine = false;
 		MiscCFG::HeadShootLineColor = ImColor(131, 137, 150, 200);
 
-		MiscCFG::AutoAccept = false;
-
 		ESPConfig::EnemySound = false;
 		ESPConfig::EnemySoundColor = ImColor(255, 255, 255, 255);
 
@@ -202,8 +200,6 @@ namespace ConfigMenu {
         MiscCFG::AutoKnifeDistance = 70.0f;
         MiscCFG::AutoZeus = false;
         MiscCFG::AutoZeusDistance = 130.0f;
-
-        MiscCFG::AntiAFKKick = false;
 
 		ESPConfig::LineToEnemyColor = ImVec4(59, 71, 148, 180);
 
@@ -227,9 +223,6 @@ namespace ConfigMenu {
 		//CrosshairsCFG::TeamCheck = true;
 
 		MiscCFG::WaterMark = true;
-		MiscCFG::BunnyHop = false;
-		MiscCFG::HitSound = 0;
-		MiscCFG::HitMarker = false;
 		MiscCFG::SniperCrosshair = true;
 		MiscCFG::SniperCrosshairColor = ImColor(32, 178, 170, 255);
 

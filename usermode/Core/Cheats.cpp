@@ -20,6 +20,7 @@
 #include "../Core/Config.h"
 #include "../Core/Init.h"
 #include "../Features/ESP.h"
+#include "../Features/Misc.h"
 #include "../Core/GUI.h"
 #include "../Helpers/Logger.h"
 
@@ -81,6 +82,9 @@ void Cheats::Run()
 
 	// process entities
 	auto entityResults = ProcessEntities(LocalEntity, LocalPlayerControllerIndex);
+
+	// triggerbot
+	TriggerBot::Update(LocalEntity, cachedResults);
 
 	// render entities
 	HandleEnts(entityResults, LocalEntity, LocalPlayerControllerIndex, GameRadar);

@@ -208,6 +208,17 @@ namespace GUI
 					}
 					ImGui::NewLine();
 
+					ImGui::GradientText("Trigger Bot");
+					PutSwitch("Enable##tb", 10.f, ImGui::GetFrameHeight() * 1.7, &TriggerBotCFG::Enabled);
+					if (TriggerBotCFG::Enabled)
+					{
+						static const int DelayMin = 0, DelayMax = 500;
+						PutSliderInt("Delay (ms)", 10.f, &TriggerBotCFG::Delay, &DelayMin, &DelayMax, "%d ms");
+						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 10.f);
+						ImGui::TextDisabled("Hotkey: ALT (hold)");
+					}
+					ImGui::NewLine();
+
 					ImGui::NextColumn();
 					ImGui::SetCursorPosY(24.f);
 					ImGui::GradientText("Preview");

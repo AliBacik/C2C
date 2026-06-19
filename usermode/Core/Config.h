@@ -110,5 +110,11 @@ namespace RadarCFG
 namespace MiscCFG
 {
 	inline bool WaterMark = true;
-    inline bool AntiAFKKick = false;
+}
+
+namespace TriggerBotCFG
+{
+	inline bool Enabled = false;
+	inline int Delay = 100; // ms
+	inline int HotKey = VK_MENU; // Alt
 }

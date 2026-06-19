@@ -2,6 +2,7 @@
 #define _USE_MATH_DEFINES
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdlib>
 #include <ctime>
@@ -18,6 +19,7 @@
 #include "..\Core\Config.h"
 #include "..\OS-ImGui\imgui\imgui.h"
 #include "..\Core\GlobalVars.h"
+#include "..\Helpers\Mouse.h"
 
 #pragma comment(lib, "winmm.lib")
 
@@ -107,59 +109,6 @@ namespace Misc
 	//	return hasFlagDucking;
 	//}
 
-	class HitMarker 
-	{
-	public:
-		const static float SIZE;
-		const static float GAP;
-
-		HitMarker(float alpha, std::chrono::steady_clock::time_point startTime)
-		{
-			this->_alpha = alpha;
-			this->_startTime = startTime;
-		}
-
-		void Draw()
-		{
-			ImGuiIO& io = ImGui::GetIO();
-			ImVec2 center = ImVec2(Gui.Window.Size.x / 2, Gui.Window.Size.y / 2);
-
-			if (this->_alpha > 0.f)
-			{
-				ImColor col = ImColor(255.f, 255.f, 255.f, this->_alpha);
-
-				ImGui::GetBackgroundDrawList()->AddLine(ImVec2(center.x - SIZE, center.y - SIZE), ImVec2(center.x - GAP, center.y - GAP), col & IM_COL32_A_MASK, 2.4f);
-				ImGui::GetBackgroundDrawList()->AddLine(ImVec2(center.x - SIZE, center.y + SIZE), ImVec2(center.x - GAP, center.y + GAP), col & IM_COL32_A_MASK, 2.4f);
-				ImGui::GetBackgroundDrawList()->AddLine(ImVec2(center.x + SIZE, center.y - SIZE), ImVec2(center.x + GAP, center.y - GAP), col & IM_COL32_A_MASK, 2.4f);
-				ImGui::GetBackgroundDrawList()->AddLine(ImVec2(center.x + SIZE, center.y + SIZE), ImVec2(center.x + GAP, center.y + GAP), col & IM_COL32_A_MASK, 2.4f);
-				ImGui::GetBackgroundDrawList()->AddLine(ImVec2(center.x - SIZE, center.y - SIZE), ImVec2(center.x - GAP, center.y - GAP), col, 1.4f);
-				ImGui::GetBackgroundDrawList()->AddLine(ImVec2(center.x - SIZE, center.y + SIZE), ImVec2(center.x - GAP, center.y + GAP), col, 1.4f);
-				ImGui::GetBackgroundDrawList()->AddLine(ImVec2(center.x + SIZE, center.y - SIZE), ImVec2(center.x + GAP, center.y - GAP), col, 1.4f);
-				ImGui::GetBackgroundDrawList()->AddLine(ImVec2(center.x + SIZE, center.y + SIZE), ImVec2(center.x + GAP, center.y + GAP), col, 1.4f);
-			}
-		}
-
-		void Update() 
-		{
-			if (this->_alpha > 0.f)
-			{
-				auto now = std::chrono::steady_clock::now();
-				auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - this->_startTime).count();
-				if (duration >= 500.f)
-					this->_alpha = 0;
-				else
-					this->_alpha = 1.f - duration / 500.f;
-				Draw();
-			}
-		}
-
-	private:
-		float _alpha;
-		std::chrono::steady_clock::time_point _startTime;
-
-	};
-
-	
 			static inline KeyboardLayout DetectKeyboardLayout()
 	{
 		char layoutName[KL_NAMELENGTH];
@@ -264,17 +213,76 @@ namespace Misc
 	}
 
 	void Watermark(const CEntity&) noexcept;
-	void HitManager(CEntity&, int&) noexcept;
 	void CleanTraces();
-	void AntiAFKKickUpdate() noexcept;
+}
 
-	namespace AutoAccept
+namespace TriggerBot
+{
+	static std::atomic<bool> g_shooting{ false };
+
+	static inline bool CheckScopeWeapon(const std::string& weapon)
 	{
-		void StartAutoAccept();
-		void StopAutoAccept();
-		bool DetectAcceptButton();
-		void ClickAcceptButton(int x, int y);
-		bool IsGreenPixel(COLORREF color);
-		void UpdateAutoAccept();
+		static const std::vector<std::string> scopeWeapons = {
+			"weapon_awp", "weapon_ssg08", "weapon_scar20", "weapon_g3sg1"
+		};
+		for (const auto& w : scopeWeapons)
+			if (weapon == w) return true;
+		return false;
+	}
+
+	static inline std::string GetWeapon(const CEntity& local)
+	{
+		return local.Pawn.WeaponName;
+	}
+
+	static inline void DoShoot()
+	{
+		if (g_shooting.exchange(true))
+			return;
+
+		std::thread([]() {
+			mouse_open();
+			mouse_move(MOUSE_PRESS, 0, 0, 0);
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			mouse_move(MOUSE_RELEASE, 0, 0, 0);
+			g_shooting = false;
+		}).detach();
+	}
+
+	static inline void Update(const CEntity& localEntity, const std::vector<std::pair<int, CEntity>>& entities)
+	{
+		if (!TriggerBotCFG::Enabled)
+			return;
+
+		if (!(GetAsyncKeyState(TriggerBotCFG::HotKey) & 0x8000))
+			return;
+
+		if (!localEntity.IsAlive())
+			return;
+
+		int crosshairEntIndex = 0;
+		if (!memoryManager.ReadMemory<int>(localEntity.Pawn.Address + Offset.Pawn.iIDEntIndex, crosshairEntIndex))
+			return;
+
+		if (crosshairEntIndex <= 0)
+			return;
+
+		for (const auto& [idx, entity] : entities)
+		{
+			if (!entity.IsAlive())
+				continue;
+
+			if (MenuConfig::TeamCheck && entity.Controller.TeamID == localEntity.Controller.TeamID)
+				continue;
+
+			if ((idx + 1) == crosshairEntIndex)
+			{
+				std::thread([delay = TriggerBotCFG::Delay]() {
+					std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+					DoShoot();
+				}).detach();
+				break;
+			}
+		}
 	}
 }
