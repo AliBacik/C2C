@@ -5,8 +5,8 @@
 namespace MenuConfig
 {
 	inline std::string name = "C2C";
-	inline std::string version = "3.7.10.4";
-	inline std::string author = "ByteCorum";
+	inline std::string version = "1.0.0.0";
+	inline std::string author = "C2C";
 
 	inline std::string path = "";
 	inline std::string docPath = "";
@@ -14,14 +14,11 @@ namespace MenuConfig
 	inline int RenderDistance = 1000;
 
 	struct {
-		// 0: Visual 1: Aimbot 2: Misc 3: Config
+		// 0: Visual 1: Config
 		int MenuPage = 0;
 		ImVec2 MainWinSize = ImVec2(600.f, 500.f);
-		ImVec2 LogoPos = ImVec2(0.f, 0.f);
 		ImVec2 Button1Pos = ImVec2(0.f, 59.f);
 		ImVec2 Button2Pos = ImVec2(0.f, 118.f);
-		ImVec2 Button3Pos = ImVec2(0.f, 177.f);
-		ImVec2 Button4Pos = ImVec2(0.f, 236.f);
 		ImVec2 ChildPos = ImVec2(60.f, 0.f);
 		ImVec2 ChildSize = ImVec2(540.f, 500.f);
 	} WCS;	// Window Component Settings
@@ -46,11 +43,6 @@ namespace MenuConfig
 	inline int HotKey = VK_END;
 }
 
-namespace LegitBotConfig
-{
-	inline bool VisibleCheck = true;
-}
-
 namespace ESPConfig
 {
 	inline int HotKey = VK_F6;
@@ -62,36 +54,6 @@ namespace ESPConfig
 	inline ImColor BoneColor = ImColor(131, 137, 150, 180);
 	inline ImColor HeadBoxColor = ImColor(131, 137, 150, 180);
 }
-
-//namespace CrosshairsCFG
-//{
-//	inline bool ShowCrossHair = false;
-//
-//	inline float CrossHairSize = 75;
-//	inline bool drawDot = true;
-//	inline bool drawCrossline = true;
-//	inline bool tStyle = false;
-//	inline bool drawCircle = false;
-//	inline bool drawOutLine = true;
-//	inline bool DynamicGap = false;
-//	inline bool TeamCheck = true;
-//
-//	inline int crosshairPreset = 0;
-//	inline int Gap = 8;
-//	inline int HorizontalLength = 6;
-//	inline int VerticalLength = 6;
-//	inline int Thickness = 1.0f;
-//	inline float DotSize = 1.0f;
-//	inline float CircleRadius = 3.f;
-//
-//	inline bool isAim = false;
-//	inline bool isJump = false;
-//
-//	inline ImColor CrossHairColor = ImColor(0, 255, 0, 255);
-//	inline ImColor TargetedColor = ImColor(255, 0, 0, 255);
-// 
-// inline bool TargetingCrosshairs = false;
-//}
 
 namespace RadarCFG
 {

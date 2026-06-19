@@ -188,10 +188,6 @@ namespace ConfigMenu {
 
 		MenuConfig::TeamCheck = true;
 		MenuConfig::BypassOBS = false;
-		LegitBotConfig::VisibleCheck = true;
-
-		MiscCFG::ShowHeadShootLine = false;
-		MiscCFG::HeadShootLineColor = ImColor(131, 137, 150, 200);
 
 		ESPConfig::EnemySound = false;
 		ESPConfig::EnemySoundColor = ImColor(255, 255, 255, 255);
@@ -227,9 +223,6 @@ namespace ConfigMenu {
 		MiscCFG::SniperCrosshairColor = ImColor(32, 178, 170, 255);
 
 		ESPConfig::ESPenabled = true;
-		ESPConfig::DrawFov = false;
-
-		LegitBotConfig::FovCircleColor = ImColor(131, 137, 150, 180);
 
 		MenuConfig::MarkWinPos = ImVec2(ImGui::GetIO().DisplaySize.x - 300.0f, 100.f);
 		MenuConfig::RadarWinPos = ImVec2(25.f, 25.f);

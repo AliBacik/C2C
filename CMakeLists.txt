@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(DragonBurnSolution VERSION 3.3.8.0 LANGUAGES CXX)
+project(C2CSolution VERSION 1.0.0.0 LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -23,11 +23,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/built/cache")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 #############################################
-# DragonBurn Main Application
+# C2C Main Application
 #############################################
 
 # Include directories for main app
-set(DRAGONBURN_INCLUDES
+set(C2C_INCLUDES
     Libs/json
     OS-ImGui/imgui
     OS-ImGui/stb
@@ -35,38 +35,35 @@ set(DRAGONBURN_INCLUDES
 )
 
 # Source files for main app
-set(DRAGONBURN_SOURCES
+set(C2C_SOURCES
     # Main
     main.cpp
-    
+
     # Config
     Config/ConfigMenu.cpp
     Config/ConfigSaver.cpp
-    
+
     # Core
     Core/Cheats.cpp
     Core/GlobalVars.cpp
     Core/MemoryMgr.cpp
-    
+
     # Features
-    Features/Aimbot.cpp
     Features/Misc.cpp
     Features/Radar.cpp
-    Features/RCS.cpp
-    Features/TriggerBot.cpp
-    
+
     # Game
     Game/Bone.cpp
     Game/Entity.cpp
     Game/Game.cpp
-    
+
     # Helpers
     Helpers/Mouse.cpp
     Helpers/UIAccess.cpp
-    
+
     # Offsets
     Offsets/Offsets.cpp
-    
+
     # ImGui
     OS-ImGui/imgui/imgui.cpp
     OS-ImGui/imgui/imgui_demo.cpp
@@ -75,7 +72,7 @@ set(DRAGONBURN_SOURCES
     OS-ImGui/imgui/imgui_impl_win32.cpp
     OS-ImGui/imgui/imgui_tables.cpp
     OS-ImGui/imgui/imgui_widgets.cpp
-    
+
     # OS-ImGui
     OS-ImGui/OS-ImGui.cpp
     OS-ImGui/OS-ImGui_Base.cpp
@@ -83,11 +80,11 @@ set(DRAGONBURN_SOURCES
 )
 
 # Header files for main app
-set(DRAGONBURN_HEADERS
+set(C2C_HEADERS
     # Config
     Config/ConfigMenu.h
     Config/ConfigSaver.h
-    
+
     # Core
     Core/Config.h
     Core/Cheats.h
@@ -97,36 +94,30 @@ set(DRAGONBURN_HEADERS
     Core/Init.h
     Core/MemoryMgr.h
     Core/Render.h
-    
+
     # Features
-    Features/Aimbot.h
-    Features/BombTimer.h
     Features/ESP.h
     Features/Misc.h
     Features/Radar.h
-    Features/RCS.h
-    Features/SoundESP.h
-    Features/SpectatorList.h
-    Features/TriggerBot.h
-    
+
     # Game
     Game/Bone.h
     Game/Entity.h
     Game/Game.h
     Game/View.h
-    
+
     # Helpers
     Helpers/Format.h
-    Helpers/GetWeaponIcon.h
     Helpers/KeyManager.h
     Helpers/Logger.h
     Helpers/Mouse.h
+    Helpers/StorageMgr.h
     Helpers/UIAccess.h
     Helpers/WebApi.h
-    
+
     # Offsets
     Offsets/Offsets.h
-    
+
     # ImGui
     OS-ImGui/imgui/imconfig.h
     OS-ImGui/imgui/imgui.h
@@ -136,46 +127,45 @@ set(DRAGONBURN_HEADERS
     OS-ImGui/imgui/imstb_rectpack.h
     OS-ImGui/imgui/imstb_textedit.h
     OS-ImGui/imgui/imstb_truetype.h
-    
+
     # OS-ImGui
     OS-ImGui/OS-ImGui.h
     OS-ImGui/OS-ImGui_Base.h
     OS-ImGui/OS-ImGui_Exception.hpp
     OS-ImGui/OS-ImGui_External.h
     OS-ImGui/OS-ImGui_Struct.h
-    
+
     # STB
     OS-ImGui/stb/stb_image.h
-    
+
     # Resources
     Resources/resource.h
     Resources/Font.hpp
-    Resources/Images.hpp
-    Resources/Language.hpp
-    Resources/Sounds.hpp
-    Resources/WeaponIcon.hpp
+    Resources/Images.h
+    Resources/Language.h
+    Resources/Sounds.h
 )
 
 # Resource files for main app
-set(DRAGONBURN_RESOURCES
+set(C2C_RESOURCES
     Resources/Resource.rc
     Resources/icon.ico
 )
 
 # Create the main executable
-add_executable(DragonBurn WIN32 ${DRAGONBURN_SOURCES} ${DRAGONBURN_HEADERS} ${DRAGONBURN_RESOURCES})
+add_executable(C2C WIN32 ${C2C_SOURCES} ${C2C_HEADERS} ${C2C_RESOURCES})
 
 # Set target name
-set_target_properties(DragonBurn PROPERTIES OUTPUT_NAME "DragonBurn")
+set_target_properties(C2C PROPERTIES OUTPUT_NAME "C2C")
 
 # Include directories for main app
-target_include_directories(DragonBurn PRIVATE ${DRAGONBURN_INCLUDES})
+target_include_directories(C2C PRIVATE ${C2C_INCLUDES})
 
 # Compiler-specific options for main app
 if(MSVC)
-    target_compile_options(DragonBurn PRIVATE /W3 /sdl-)
-    
-    target_compile_definitions(DragonBurn PRIVATE
+    target_compile_options(C2C PRIVATE /W3 /sdl-)
+
+    target_compile_definitions(C2C PRIVATE
         $<$<CONFIG:Debug>:DBDEBUG>
         $<$<CONFIG:Debug>:_DEBUG>
         $<$<CONFIG:Release>:NDEBUG>
@@ -183,23 +173,23 @@ if(MSVC)
         UNICODE
         _UNICODE
     )
-    
-    set_property(TARGET DragonBurn PROPERTY
+
+    set_property(TARGET C2C PROPERTY
         MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
     )
-    
-    set_target_properties(DragonBurn PROPERTIES
+
+    set_target_properties(C2C PROPERTIES
         LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE /DEBUG"
         LINK_FLAGS_RELEASE "/SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF"
     )
-    
-    set_target_properties(DragonBurn PROPERTIES
+
+    set_target_properties(C2C PROPERTIES
         LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\""
     )
 endif()
 
 # Platform-specific libraries for main app
-target_link_libraries(DragonBurn PRIVATE
+target_link_libraries(C2C PRIVATE
     d3d11
     dxgi
     user32
@@ -217,19 +207,13 @@ target_link_libraries(DragonBurn PRIVATE
 )
 
 #############################################
-# DragonBurn Kernel Project
+# C2C Kernel Project
 #############################################
 
 # Check if kernel project directory exists
-if(EXISTS "${CMAKE_SOURCE_DIR}/DragonBurn-kernel" OR EXISTS "${CMAKE_SOURCE_DIR}/kernel")
-    # Try to find the kernel project directory
-    set(KERNEL_DIR "")
-    if(EXISTS "${CMAKE_SOURCE_DIR}/DragonBurn-kernel")
-        set(KERNEL_DIR "${CMAKE_SOURCE_DIR}/DragonBurn-kernel")
-    elseif(EXISTS "${CMAKE_SOURCE_DIR}/kernel")
-        set(KERNEL_DIR "${CMAKE_SOURCE_DIR}/kernel")
-    endif()
-    
+if(EXISTS "${CMAKE_SOURCE_DIR}/kernel")
+    set(KERNEL_DIR "${CMAKE_SOURCE_DIR}/kernel")
+
     if(KERNEL_DIR)
         # Source files for kernel project
         set(KERNEL_SOURCES
@@ -240,7 +224,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/DragonBurn-kernel" OR EXISTS "${CMAKE_SOURCE_DIR}
             ${KERNEL_DIR}/service.cpp
             ${KERNEL_DIR}/utils.cpp
         )
-        
+
         # Header files for kernel project
         set(KERNEL_HEADERS
             ${KERNEL_DIR}/include/cfg.h
@@ -255,26 +239,25 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/DragonBurn-kernel" OR EXISTS "${CMAKE_SOURCE_DIR}
             ${KERNEL_DIR}/include/web_api.h
             ${KERNEL_DIR}/resource.h
         )
-        
+
         # Resource files for kernel project
         set(KERNEL_RESOURCES
             ${KERNEL_DIR}/Resource.rc
             ${KERNEL_DIR}/icon.ico
         )
-        
+
         # Create the kernel executable
-        add_executable(DragonBurn-kernel WIN32 ${KERNEL_SOURCES} ${KERNEL_HEADERS} ${KERNEL_RESOURCES})
-        
+        add_executable(C2C-kernel WIN32 ${KERNEL_SOURCES} ${KERNEL_HEADERS} ${KERNEL_RESOURCES})
+
         # Set target name
-        set_target_properties(DragonBurn-kernel PROPERTIES OUTPUT_NAME "DragonBurn-kernel")
-        
+        set_target_properties(C2C-kernel PROPERTIES OUTPUT_NAME "C2C-kernel")
+
         # Include directories for kernel project
-        target_include_directories(DragonBurn-kernel PRIVATE ${KERNEL_DIR}/include)
-        
+        target_include_directories(C2C-kernel PRIVATE ${KERNEL_DIR}/include)
+
         # Compiler-specific options for kernel project
         if(MSVC)
-            # Debug configuration
-            target_compile_options(DragonBurn-kernel PRIVATE
+            target_compile_options(C2C-kernel PRIVATE
                 $<$<CONFIG:Debug>:/W4>
                 $<$<CONFIG:Debug>:/Od>
                 $<$<CONFIG:Release>:/W3>
@@ -284,28 +267,26 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/DragonBurn-kernel" OR EXISTS "${CMAKE_SOURCE_DIR}
                 $<$<CONFIG:Release>:/MP>
                 /sdl
             )
-            
-            target_compile_definitions(DragonBurn-kernel PRIVATE
+
+            target_compile_definitions(C2C-kernel PRIVATE
                 $<$<CONFIG:Debug>:_DEBUG>
                 $<$<CONFIG:Release>:NDEBUG>
                 UNICODE
                 _UNICODE
             )
-            
-            # Linker options for kernel project
-            set_target_properties(DragonBurn-kernel PROPERTIES
+
+            set_target_properties(C2C-kernel PROPERTIES
                 LINK_FLAGS_DEBUG "/DEBUG"
                 LINK_FLAGS_RELEASE "/OPT:REF /OPT:ICF /LTCG"
             )
-            
-            # UAC elevation for kernel project
-            set_target_properties(DragonBurn-kernel PROPERTIES
+
+            set_target_properties(C2C-kernel PROPERTIES
                 LINK_FLAGS "/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\""
             )
         endif()
-        
+
         # Libraries for kernel project
-        target_link_libraries(DragonBurn-kernel PRIVATE
+        target_link_libraries(C2C-kernel PRIVATE
             version
             kernel32
             user32
@@ -320,10 +301,9 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/DragonBurn-kernel" OR EXISTS "${CMAKE_SOURCE_DIR}
             odbc32
             odbccp32
         )
-        
-        # Set folder for kernel project in IDE
-        set_target_properties(DragonBurn-kernel PROPERTIES FOLDER "Kernel")
-        
+
+        set_target_properties(C2C-kernel PROPERTIES FOLDER "Kernel")
+
     endif()
 endif()
 
@@ -331,15 +311,14 @@ endif()
 # IDE Organization
 #############################################
 
-# Group source files for main app
-source_group("DragonBurn\\Config" FILES 
+source_group("C2C\\Config" FILES
     Config/ConfigMenu.cpp
     Config/ConfigSaver.cpp
     Config/ConfigMenu.h
     Config/ConfigSaver.h
 )
 
-source_group("DragonBurn\\Core" FILES
+source_group("C2C\\Core" FILES
     Core/Cheats.cpp
     Core/GlobalVars.cpp
     Core/MemoryMgr.cpp
@@ -353,24 +332,15 @@ source_group("DragonBurn\\Core" FILES
     Core/Render.h
 )
 
-source_group("DragonBurn\\Features" FILES
-    Features/Aimbot.cpp
+source_group("C2C\\Features" FILES
     Features/Misc.cpp
     Features/Radar.cpp
-    Features/RCS.cpp
-    Features/TriggerBot.cpp
-    Features/Aimbot.h
-    Features/BombTimer.h
     Features/ESP.h
     Features/Misc.h
     Features/Radar.h
-    Features/RCS.h
-    Features/SoundESP.h
-    Features/SpectatorList.h
-    Features/TriggerBot.h
 )
 
-source_group("DragonBurn\\Game" FILES
+source_group("C2C\\Game" FILES
     Game/Bone.cpp
     Game/Entity.cpp
     Game/Game.cpp
@@ -380,19 +350,19 @@ source_group("DragonBurn\\Game" FILES
     Game/View.h
 )
 
-source_group("DragonBurn\\Helpers" FILES
+source_group("C2C\\Helpers" FILES
     Helpers/Mouse.cpp
     Helpers/UIAccess.cpp
     Helpers/Format.h
-    Helpers/GetWeaponIcon.h
     Helpers/KeyManager.h
     Helpers/Logger.h
     Helpers/Mouse.h
+    Helpers/StorageMgr.h
     Helpers/UIAccess.h
     Helpers/WebApi.h
 )
 
-source_group("DragonBurn\\ImGui" FILES
+source_group("C2C\\ImGui" FILES
     OS-ImGui/imgui/imgui.cpp
     OS-ImGui/imgui/imgui_demo.cpp
     OS-ImGui/imgui/imgui_draw.cpp
@@ -410,7 +380,7 @@ source_group("DragonBurn\\ImGui" FILES
     OS-ImGui/imgui/imstb_truetype.h
 )
 
-source_group("DragonBurn\\OS-ImGui" FILES
+source_group("C2C\\OS-ImGui" FILES
     OS-ImGui/OS-ImGui.cpp
     OS-ImGui/OS-ImGui_Base.cpp
     OS-ImGui/OS-ImGui_External.cpp
@@ -422,24 +392,23 @@ source_group("DragonBurn\\OS-ImGui" FILES
     OS-ImGui/stb/stb_image.h
 )
 
-source_group("DragonBurn\\Resources" FILES
+source_group("C2C\\Resources" FILES
     Resources/Resource.rc
     Resources/icon.ico
     Resources/resource.h
     Resources/Font.hpp
-    Resources/Images.hpp
-    Resources/Language.hpp
-    Resources/Sounds.hpp
-    Resources/WeaponIcon.hpp
+    Resources/Images.h
+    Resources/Language.h
+    Resources/Sounds.h
 )
 
-source_group("DragonBurn\\Offsets" FILES
+source_group("C2C\\Offsets" FILES
     Offsets/Offsets.cpp
     Offsets/Offsets.h
 )
 
 # Set main app as startup project
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT DragonBurn)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT C2C)
 
 # Set folder for main project in IDE
-set_target_properties(DragonBurn PROPERTIES FOLDER "Main")
+set_target_properties(C2C PROPERTIES FOLDER "Main")

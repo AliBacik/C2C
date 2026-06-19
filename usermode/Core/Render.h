@@ -9,8 +9,6 @@
 #include "../OS-ImGui/imgui/imgui.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "../OS-ImGui/imgui/imgui_internal.h"
-#include "../Features/TriggerBot.h"
-
 namespace Render
 {
 
@@ -51,32 +49,6 @@ namespace Render
 
 		Gui.StrokeText(dis_str, { Rect.x + Rect.z + 4, Rect.y }, ImColor(0, 98, 98, 255), 14, false);
 
-	}
-
-	inline void DrawFovCircle(ImDrawList* drawList, const CEntity& LocalEntity) noexcept
-	{
-		if (!ESPConfig::DrawFov)
-			return;
-
-		constexpr float DEG_TO_RAD = M_PI / 180.f;
-		constexpr float STATIC_FOV = 90.0f;
-		
-		ImVec2 center = ImVec2(Gui.Window.Size.x / 2.0f, Gui.Window.Size.y / 2.0f);
-		float halfWindowSize = Gui.Window.Size.x / 2.0f;
-
-		float staticFovTan = tan(STATIC_FOV * DEG_TO_RAD / 2.0f);
-		float aimFovTan = tan(AimControl::AimFov * DEG_TO_RAD / 2.0f);
-
-		float radius = (aimFovTan / staticFovTan) * halfWindowSize;
-
-		drawList->AddCircle(center, radius, LegitBotConfig::FovCircleColor, 0, 1.5f);
-
-		if (AimControl::AimFovMin > 0)
-		{
-			float aimFovMinTan = tan(AimControl::AimFovMin * DEG_TO_RAD / 2.0f);
-			float minRadius = (aimFovMinTan / staticFovTan) * halfWindowSize;
-			drawList->AddCircle(center, minRadius, LegitBotConfig::FovCircleColor, 0, 1.5f);
-		}
 	}
 
 	inline void DrawCrossHair(ImDrawList* drawList, const ImVec2& pos, ImColor color) noexcept
@@ -120,58 +92,6 @@ namespace Render
 		}
 
 		Gui.Line({ StartX, StartY }, { EndX, EndY }, Color, Thickness);
-	}
-
-	inline void DrawFov(const CEntity& LocalEntity, float Size, ImColor Color, float Thickness)
-	{
-		if (!LegitBotConfig::ShowFovLine || MenuConfig::ShowMenu)
-			return;
-
-		constexpr float DEG_TO_RAD = M_PI / 180.0f;
-		const Vec2 Pos = Gui.Window.Size * 0.5f;
-		const float radian = (LocalEntity.Pawn.Fov * 0.5f) * DEG_TO_RAD;
-		const float Length = Size * tan(radian);
-
-		std::array<Vec2, 2> LineEndPoints = {
-			Vec2(Pos.x - Length, Pos.y - Size),
-			Vec2(Pos.x + Length, Pos.y - Size)
-		};
-
-		Gui.Line(Pos, LineEndPoints[0], Color, 1.5f);
-		Gui.Line(Pos, LineEndPoints[1], Color, 1.5f);
-	}
-
-	inline void HeadShootLine(const CEntity& LocalEntity, ImColor Color)
-	{
-		if (!MiscCFG::ShowHeadShootLine || MenuConfig::ShowMenu)
-			return;
-
-		// Pre-compute half dimensions
-		const float halfWindowX = Gui.Window.Size.x * 0.5f;
-		const float halfWindowY = Gui.Window.Size.y * 0.5f;
-
-		// Convert angles to radians
-		const float fovRadians = LocalEntity.Pawn.Fov * (M_PI / 180.0f);
-		const float viewAngleXRadians = LocalEntity.Pawn.ViewAngle.x * (M_PI / 180.0f);
-
-		// Compute sine values
-		const float fovSin = std::sin(fovRadians);
-		const float viewSin = std::sin(viewAngleXRadians);
-
-		// Pre-compute scale factor once (note: sin(90°) is 1, so it is removed)
-		const float scaleFactor = Gui.Window.Size.y / (2.0f * fovSin);
-
-		Vec2 Pos;
-		Pos.x = halfWindowX;
-		Pos.y = halfWindowY - scaleFactor * viewSin;
-
-		// Left rectangles
-		Gui.RectangleFilled(Vec2{ Pos.x - 21, Pos.y - 1 }, Vec2{ 17, 3 }, Color & IM_COL32_A_MASK);
-		Gui.RectangleFilled(Vec2{ Pos.x - 20, Pos.y }, Vec2{ 17, 3 }, Color);
-
-		// Right rectangles
-		Gui.RectangleFilled(Vec2{ Pos.x + 5, Pos.y - 1 }, Vec2{ 17, 3 }, Color & IM_COL32_A_MASK);
-		Gui.RectangleFilled(Vec2{ Pos.x + 6, Pos.y }, Vec2{ 17, 3 }, Color);
 	}
 
 	inline ImVec4 Get2DBox(const CEntity& Entity)
