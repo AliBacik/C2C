@@ -60,8 +60,27 @@ C2C iki parçadan oluşur:
 ### Trigger Bot
 - Crosshair düşmana gelince otomatik ateş
 - ALT tuşu basılı tutulurken aktif
-- Ayarlanabilir gecikme (0–500ms)
+- Ayarlanabilir gecikme (10–500ms), ±15ms random jitter
+- Scope check — AWP/SSG/SCAR/G3SG1 için scope şartı
 - Team check ile takım arkadaşlarını atla
+
+### WallHack Helper
+- Düşmanlar ESP'de başta kırmızı görünür — vurman riskli
+- Görünür olduktan belirli süre sonra yeşile döner — vurman safe
+- **Cold Peek** (default 250ms) — düşman aniden çıktıysa, insan reaksiyon süresi baz alındı
+- **Pre-Aim Peek** (default 90ms) — zaten o yöne nişan alıyorduysan daha kısa süre
+- Düşmanın üzerinde kalan süre gösterir (örn. `134ms`)
+- Smooth kırmızı → yeşil renk geçişi
+- Ayarlanabilir süreler (50–800ms)
+
+### Behavior Meter (Analytics)
+- Oyuncunun davranışını analiz eder, şüpheli pattern'leri uyarır
+- **Wall Tracking** — duvar arkasındaki düşmanı crosshair ile takip edince tespit eder
+- **Peek Reaction** — düşman görününce reaksiyon süresini ölçer, ortalaması gösterilir
+- **Headshot Oranı** — çok yüksekse uyarır
+- **TriggerBot Tutarlılığı** — ateş pattern'i çok düzenli olursa uyarır
+- Yeşil (Legit) / Sarı (Caution) / Kırmızı (Obvious!) bar
+- Ekran ortasında büyük fade uyarı mesajı
 
 ### Diğer
 - Watermark — FPS ve hız göstergesi
@@ -69,6 +88,25 @@ C2C iki parçadan oluşur:
 - Config sistemi — ayarları kaydet/yükle
 - Clear Traces — config klasörünü gizler, iz temizler
 
+---
+
+## Gereksinimler
+
+- Windows 10/11
+- HVCI kapalı
+- Secure Boot kapalı
+- FACEIT / Vanguard kapalı (otomatik durdurulur)
+- CS2 (Steam)
+
+---
+
+## Derleme
+
+Visual Studio 2022, x64 Release
+
+1. `C2C.sln` aç
+2. `kernel` projesini derle → `C2C-kernel.exe`
+3. `user` projesini derle → `C2C.exe`
 4. İkisini aynı klasöre koy
 
 Driver binary'sini `Crypto` aracıyla şifreleyip `cfg.h`'e gömmek gerekir:
