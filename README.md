@@ -69,25 +69,6 @@ C2C iki parçadan oluşur:
 - Config sistemi — ayarları kaydet/yükle
 - Clear Traces — config klasörünü gizler, iz temizler
 
----
-
-## Gereksinimler
-
-- Windows 10/11
-- HVCI kapalı
-- Secure Boot kapalı
-- FACEIT / Vanguard kapalı (otomatik durdurulur)
-- CS2 (Steam)
-
----
-
-## Derleme
-
-Visual Studio 2022, x64 Release
-
-1. `C2C.sln` aç
-2. `kernel` projesini derle → `C2C-kernel.exe`
-3. `user` projesini derle → `C2C.exe`
 4. İkisini aynı klasöre koy
 
 Driver binary'sini `Crypto` aracıyla şifreleyip `cfg.h`'e gömmek gerekir:
