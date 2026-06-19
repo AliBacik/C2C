@@ -10,7 +10,6 @@
 
 #include "../Features/ESP.h"
 
-ID3D11ShaderResourceView* Logo = NULL;
 ID3D11ShaderResourceView* MenuButton1 = NULL;
 ID3D11ShaderResourceView* MenuButton2 = NULL;
 ID3D11ShaderResourceView* MenuButton1Pressed = NULL;
@@ -19,27 +18,15 @@ ID3D11ShaderResourceView* MenuButton2Pressed = NULL;
 bool Button1Pressed = true;
 bool Button2Pressed = false;
 
-int LogoW = 0, LogoH = 0;
 int buttonW = 0;
 int buttonH = 0;
 
 namespace GUI
 {
-	void LoadDefaultConfig()
-	{
-		if (!MenuConfig::defaultConfig)
-			return;
-
-		MyConfigSaver::LoadConfig("default.cfg");
-
-		MenuConfig::defaultConfig = false;
-	}
-
 	void LoadImages()
 	{
-		if (Logo == NULL)
+		if (MenuButton1 == NULL)
 		{
-			Gui.LoadTextureFromMemory(Images::Logo, sizeof Images::Logo, &Logo, &LogoW, &LogoH);
 			Gui.LoadTextureFromMemory(Images::VisualButton, sizeof Images::VisualButton, &MenuButton1, &buttonW, &buttonH);
 			Gui.LoadTextureFromMemory(Images::ConfigButton, sizeof Images::ConfigButton, &MenuButton2, &buttonW, &buttonH);
 			Gui.LoadTextureFromMemory(Images::VisualButtonPressed, sizeof Images::VisualButtonPressed, &MenuButton1Pressed, &buttonW, &buttonH);
@@ -47,6 +34,15 @@ namespace GUI
 
 			MenuConfig::RadarWinPos = ImVec2(25.f, 25.f);
 		}
+	}
+
+	void LoadDefaultConfig()
+	{
+		if (!MenuConfig::defaultConfig)
+			return;
+
+		MyConfigSaver::LoadConfig("default.cfg");
+		MenuConfig::defaultConfig = false;
 	}
 
 	void AlignRight(float ContentWidth)
@@ -131,13 +127,6 @@ namespace GUI
 	void DrawGui()
 	{
 		LoadImages();
-		ImTextureID ImageID;
-		ImVec2 LogoSize, LogoPos;
-
-		ImageID = (void*)Logo;
-		LogoSize = ImVec2(LogoW, LogoH);
-		LogoPos = MenuConfig::WCS.LogoPos;
-
 		ImColor BorderColor = ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border));
 
 		ImGuiWindowFlags Flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar;
@@ -145,13 +134,6 @@ namespace GUI
 		ImGui::SetNextWindowSize(MenuConfig::WCS.MainWinSize);
 		ImGui::Begin("C2C", nullptr, Flags);
 		{
-			ImGui::SetCursorPos(LogoPos);
-			ImGui::Image(ImageID, LogoSize);
-			ImGui::GetWindowDrawList()->AddRect(
-				ImVec2(MenuConfig::WCS.LogoPos.x + ImGui::GetWindowPos().x, MenuConfig::WCS.LogoPos.y + ImGui::GetWindowPos().y),
-				ImVec2(MenuConfig::WCS.LogoPos.x + LogoW + ImGui::GetWindowPos().x, MenuConfig::WCS.LogoPos.y + LogoH + ImGui::GetWindowPos().y),
-				BorderColor, 0.f, ImDrawFlags_RoundCornersNone | ImDrawCornerFlags_Top | ImDrawCornerFlags_Bot, 1.f, true);
-
 			ImGui::SetCursorPos(MenuConfig::WCS.Button1Pos);
 			if (!Button1Pressed)
 				ImGui::Image((void*)MenuButton1, ImVec2(buttonW, buttonH));
