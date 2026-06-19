@@ -1,6 +1,6 @@
 #pragma once
-#include "../Game/Bone.h"
-#include "../Game/Game.h"
+#include "../OS-ImGui/imgui/imgui.h"
+#include <Windows.h>
 
 namespace MenuConfig
 {
@@ -50,9 +50,42 @@ namespace ESPConfig
 	inline bool ShowBoneESP = true;
 	inline bool ShowHeadBox = true;
 	inline bool ShowPreview = true;
+	inline bool ShowBoxESP = false;
+	inline int BoxType = 0;
+	inline bool FlashCheck = false;
+	inline bool ShowHealthBar = true;
+	inline bool ShowHealthNum = false;
+	inline bool AmmoBar = false;
+	inline bool ArmorBar = false;
+	inline bool ShowArmorNum = false;
+	inline bool ShowDistance = false;
+	inline bool ShowLineToEnemy = false;
+	inline int LinePos = 0;
+	inline bool ShowEyeRay = false;
+	inline bool OutLine = true;
+	inline bool FilledVisBox = false;
+	inline bool MultiColor = false;
+	inline bool VisibleCheck = false;
+	inline bool ShowWeaponESP = false;
+	inline bool ShowPlayerName = false;
+	inline bool ShowOutOfFOVArrow = false;
+	inline bool ShowIsScoped = false;
+	inline bool ShowIsBlind = false;
+	inline bool EnemySound = false;
+	inline float BoxRounding = 5.0f;
+	inline float OutOfFOVRadiusFactor = 0.45f;
 
 	inline ImColor BoneColor = ImColor(131, 137, 150, 180);
 	inline ImColor HeadBoxColor = ImColor(131, 137, 150, 180);
+	inline ImColor BoxColor = ImColor(59, 71, 148, 180);
+	inline ImColor FilledColor = ImColor(59, 71, 148, 128);
+	inline ImColor FilledColor2 = ImColor(59, 71, 148, 128);
+	inline ImColor BoxFilledVisColor = ImColor(0, 98, 98, 128);
+	inline ImColor VisibleColor = ImColor(59, 71, 148, 180);
+	inline ImColor OutOfFOVArrowColor = ImColor(59, 71, 148, 128);
+	inline ImColor EnemySoundColor = ImColor(255, 255, 255, 255);
+	inline ImVec4 EyeRayColor = ImVec4(0, 98, 98, 255);
+	inline ImVec4 LineToEnemyColor = ImVec4(59, 71, 148, 180);
 }
 
 namespace RadarCFG
@@ -72,6 +105,17 @@ namespace RadarCFG
 namespace MiscCFG
 {
 	inline bool WaterMark = true;
+	inline bool SniperCrosshair = false;
+	inline ImColor SniperCrosshairColor = ImColor(255, 255, 255, 200);
+	inline bool SpecList = false;
+	inline bool bmbTimer = true;
+	inline bool FastStop = false;
+	inline bool AutoKnife = false;
+	inline bool AutoZeus = false;
+	inline float FastStopDelay = 100.f;
+	inline float AutoKnifeDistance = 70.0f;
+	inline float AutoZeusDistance = 130.0f;
+	inline ImColor BombTimerCol = ImColor(131, 137, 150, 255);
 }
 
 namespace TriggerBotCFG

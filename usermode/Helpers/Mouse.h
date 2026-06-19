@@ -3,6 +3,9 @@
 #define MOUSE_H
 #define ZwClose(handle) NtClose(handle)
 
+#define MOUSE_PRESS   1
+#define MOUSE_RELEASE 2
+
 typedef int BOOL;
 
 BOOL mouse_open(void);

@@ -1,6 +1,8 @@
 #include "OS-ImGui_External.h"
 #include "../Core/Config.h"
 #include "../Helpers/Logger.h"
+#include <map>
+#include <utility>
 
 // D3D11 Device
 namespace OSImGui
@@ -303,7 +305,6 @@ namespace OSImGui
                     g_Device.g_pd3dDeviceContext->ClearRenderTargetView(g_Device.g_mainRenderTargetView, actualClearColor);
 
                     g_Device.g_pSwapChain->Present(0, 0);
-                    frameSkip = 0;
 
                     Sleep(1);
                     continue;

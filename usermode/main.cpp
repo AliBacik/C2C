@@ -1,10 +1,13 @@
-﻿#include "Core/Cheats.h"
+﻿#define NOMINMAX
+#include "Core/Cheats.h"
 #include "Offsets/Offsets.h"
 #include "Resources/Language.h"
 #include "Core/Init.h"
 #include "Config/ConfigSaver.h"
 #include "Helpers/Logger.h"
 #include "Helpers/UIAccess.h"
+#include "Features/Misc.h"
+#include "Core/GlobalVars.h"
 #include <filesystem>
 #include <KnownFolders.h>
 #include <ShlObj.h>

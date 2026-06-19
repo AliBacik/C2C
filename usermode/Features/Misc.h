@@ -1,7 +1,9 @@
 #pragma once
+#define NOMINMAX
 #define _USE_MATH_DEFINES
 
 #include <algorithm>
+#include <random>
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
@@ -11,6 +13,7 @@
 #include <string>
 #include <thread>
 #include <time.h>
+#include <random>
 #include <vector>
 #include <Windows.h>
 
@@ -237,9 +240,10 @@ namespace TriggerBot
 
 	static inline int RandomJitter(int base, int range)
 	{
-		static std::mt19937 rng(std::random_device{}());
+		static std::random_device rd;
+		static std::mt19937 rng(rd());
 		std::uniform_int_distribution<int> dist(-range, range);
-		return std::max(0, base + dist(rng));
+		return (std::max)(0, base + dist(rng));
 	}
 
 	static inline void DoShoot()

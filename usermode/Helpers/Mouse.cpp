@@ -11,8 +11,6 @@ typedef struct {
 	char unk1;
 } MOUSE_IO;
 
-#define MOUSE_PRESS 1
-#define MOUSE_RELEASE 2
 #define MOUSE_MOVE 3
 #define MOUSE_CLICK 4
 

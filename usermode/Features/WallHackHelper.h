@@ -1,4 +1,5 @@
 #pragma once
+#define NOMINMAX
 #include <chrono>
 #include <unordered_map>
 #include "../Core/Config.h"
@@ -113,6 +114,6 @@ namespace WallHackHelper
         int delay = g_effectiveDelay.count(controllerAddr)
             ? g_effectiveDelay[controllerAddr]
             : WallHackHelperCFG::SafeDelayMs;
-        return std::max(0.f, (float)delay - elapsed);
+        return (std::max)(0.f, (float)delay - elapsed);
     }
 }

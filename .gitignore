@@ -1,0 +1,33 @@
+# Build outputs
+built/
+built_dbg/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.aps
+*.ncb
+*.sdf
+*.opensdf
+*.db
+*.opendb
+ipch/
+
+# Compiled files
+*.exe
+*.pdb
+*.ilk
+*.obj
+*.lib
+*.exp
+*.idb
+
+# Crypto tool artifacts
+key.bin
+*.enc
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake

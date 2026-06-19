@@ -1,6 +1,7 @@
 #include "ConfigMenu.h"
 #include "../Core/Config.h"
 #include "ConfigSaver.h"
+#include "../OS-ImGui/OS-ImGui.h"
 #include <filesystem>
 #include <string>
 #include "../Resources/Language.h"

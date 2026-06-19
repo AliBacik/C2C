@@ -1,4 +1,5 @@
 #pragma once
+#define NOMINMAX
 #include <chrono>
 #include <deque>
 #include <string>
@@ -59,12 +60,12 @@ namespace Analytics
 
     static inline void AddScore(float amount)
     {
-        g_score = std::min(100.f, g_score + amount);
+        g_score = (std::min)(100.f, g_score + amount);
     }
 
     static inline void DecayScore(float dt)
     {
-        g_score = std::max(0.f, g_score - dt * 2.5f);
+        g_score = (std::max)(0.f, g_score - dt * 2.5f);
     }
 
     static inline void ShowWarning(const std::string& text)
@@ -145,7 +146,7 @@ namespace Analytics
         // uyari alpha decay
         float warnAge = std::chrono::duration<float>(now - g_warningShownAt).count();
         if (warnAge > 2.f)
-            g_warningAlpha = std::max(0.f, g_warningAlpha - dt * 1.5f);
+            g_warningAlpha = (std::max)(0.f, g_warningAlpha - dt * 1.5f);
 
         if (!local.IsAlive()) return;
 

@@ -7,6 +7,7 @@
 
 #include "..\Resources\Language.h"
 #include "..\Resources\Images.h"
+#include "..\Helpers\KeyManager.h"
 
 #include "../Features/ESP.h"
 
@@ -242,7 +243,8 @@ namespace GUI
 					if (ImGui::Button("Set", { 70.f, 25.f }))
 					{
 						std::thread([&]() {
-							KeyMgr::GetPressedKey(MenuConfig::HotKey, "Menu");
+							std::string keyName = "Menu";
+							KeyMgr::GetPressedKey(MenuConfig::HotKey, &keyName);
 							}).detach();
 					}
 

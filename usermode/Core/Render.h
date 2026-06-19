@@ -1,10 +1,13 @@
 #pragma once
+#define NOMINMAX
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <algorithm>
 #include <chrono>
 #include <map>
 #include <Windows.h>
 #include <unordered_map>
+#include "../Core/Config.h"
 #include "../Game/Entity.h"
 #include "../OS-ImGui/imgui/imgui.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -107,10 +110,10 @@ namespace Render
 		{
 			if (!boneJoint.IsVisible)
 				continue;
-			minPos.x = min(boneJoint.ScreenPos.x, minPos.x);
-			minPos.y = min(boneJoint.ScreenPos.y, minPos.y);
-			maxPos.x = max(boneJoint.ScreenPos.x, maxPos.x);
-			maxPos.y = max(boneJoint.ScreenPos.y, maxPos.y);
+			minPos.x = std::min(boneJoint.ScreenPos.x, minPos.x);
+			minPos.y = std::min(boneJoint.ScreenPos.y, minPos.y);
+			maxPos.x = std::max(boneJoint.ScreenPos.x, maxPos.x);
+			maxPos.y = std::max(boneJoint.ScreenPos.y, maxPos.y);
 		}
 
 		BoneJointPos headBone = Entity.GetBone().BonePosList[BONEINDEX::head];
@@ -121,10 +124,10 @@ namespace Render
 		const float posX = headBone.ScreenPos.x - width * 0.5f;
 		const float posY = headBone.ScreenPos.y - height * 0.08f;
 
-		minPos.x = min(minPos.x, posX);
-		minPos.y = min(minPos.y, posY);
-		maxPos.x = max(maxPos.x, posX + width);
-		maxPos.y = max(maxPos.y, posY + height);
+		minPos.x = std::min(minPos.x, posX);
+		minPos.y = std::min(minPos.y, posY);
+		maxPos.x = std::max(maxPos.x, posX + width);
+		maxPos.y = std::max(maxPos.y, posY + height);
 
 		const Vec2 size{ maxPos.x - minPos.x, maxPos.y - minPos.y };
 		return ImVec4(minPos.x, minPos.y, size.x, size.y);
@@ -198,10 +201,10 @@ namespace Render
 		{
 			if (!boneJoint.IsVisible)
 				continue;
-			minPos.x = min(boneJoint.ScreenPos.x, minPos.x);
-			minPos.y = min(boneJoint.ScreenPos.y, minPos.y);
-			maxPos.x = max(boneJoint.ScreenPos.x, maxPos.x);
-			maxPos.y = max(boneJoint.ScreenPos.y, maxPos.y);
+			minPos.x = std::min(boneJoint.ScreenPos.x, minPos.x);
+			minPos.y = std::min(boneJoint.ScreenPos.y, minPos.y);
+			maxPos.x = std::max(boneJoint.ScreenPos.x, maxPos.x);
+			maxPos.y = std::max(boneJoint.ScreenPos.y, maxPos.y);
 		}
 
 		const Vec2 size{ maxPos.x - minPos.x, maxPos.y - minPos.y };

@@ -79,4 +79,11 @@ namespace ESP
 	}
 
 	void RenderOutOfFOVArrow(const CEntity& LocalEntity, const CEntity& Entity) {}
+
+	inline ImVec4 GetBoxRect(const CEntity& Entity, int boxType)
+	{
+		if (boxType == 1)
+			return Render::Get2DBoneRect(Entity);
+		return Render::Get2DBox(Entity);
+	}
 }

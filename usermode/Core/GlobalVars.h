@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "../Game/Game.h"
 #include "Globals.h"
 
