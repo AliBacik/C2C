@@ -45,6 +45,18 @@ extern "C" {
 
     NTKERNELAPI PVOID PsGetProcessSectionBaseAddress(PEPROCESS Process);
     NTKERNELAPI PPEB  PsGetProcessPeb(PEPROCESS Process);
+
+    NTKERNELAPI NTSTATUS ObReferenceObjectByName(
+        PUNICODE_STRING ObjectName,
+        ULONG Attributes,
+        PACCESS_STATE AccessState,
+        ACCESS_MASK DesiredAccess,
+        POBJECT_TYPE ObjectType,
+        KPROCESSOR_MODE AccessMode,
+        PVOID ParseContext,
+        PVOID* Object);
+
+    extern POBJECT_TYPE* IoDriverObjectType;
 }
 
 // mouclass input injection
@@ -56,8 +68,8 @@ typedef struct _MOUSE_INPUT_DATA {
         struct {
             USHORT ButtonFlags;
             USHORT ButtonData;
-        };
-    };
+        } s;
+    } u;
     ULONG RawButtons;
     LONG  LastX;
     LONG  LastY;
@@ -116,7 +128,7 @@ static VOID SendMouseClick(BOOLEAN press)
     if (NT_SUCCESS(FindMouseDevice()) && g_mouseDevice && g_mouseCallback)
     {
         MOUSE_INPUT_DATA mid = {};
-        mid.ButtonFlags = press ? MOUSE_LEFT_BUTTON_DOWN : MOUSE_LEFT_BUTTON_UP;
+        mid.u.s.ButtonFlags = press ? MOUSE_LEFT_BUTTON_DOWN : MOUSE_LEFT_BUTTON_UP;
 
         ULONG consumed = 0;
         g_mouseCallback(g_mouseDevice, &mid, &mid + 1, &consumed);
