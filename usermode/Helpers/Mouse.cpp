@@ -1,7 +1,6 @@
 #include "Mouse.h"
-#include "../Core/MemoryMgr.h"
 
 void mouse_click(bool press)
 {
-    memoryManager.MouseClick(press);
+    mouse_event(press ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 }

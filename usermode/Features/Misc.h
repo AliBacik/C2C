@@ -222,6 +222,7 @@ namespace Misc
 namespace TriggerBot
 {
 	static std::atomic<bool> g_shooting{ false };
+	static std::chrono::steady_clock::time_point g_lastShotTime{};
 
 	static inline bool CheckScopeWeapon(const std::string& weapon)
 	{
@@ -246,15 +247,24 @@ namespace TriggerBot
 		return (std::max)(0, base + dist(rng));
 	}
 
-	static inline void DoShoot()
+	static inline void DoShoot(int delayMs)
 	{
 		if (g_shooting.exchange(true))
 			return;
 
-		std::thread([]() {
-			int pressDuration = RandomJitter(14, 8);
+		// sol tus zaten basılıysa ates etme
+		if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+		{
+			g_shooting = false;
+			return;
+		}
+
+		g_lastShotTime = std::chrono::steady_clock::now();
+
+		std::thread([delayMs]() {
+			std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
 			mouse_click(true);
-			std::this_thread::sleep_for(std::chrono::milliseconds(pressDuration));
+			std::this_thread::sleep_for(std::chrono::milliseconds(RandomJitter(12, 6)));
 			mouse_click(false);
 			g_shooting = false;
 		}).detach();
@@ -269,6 +279,12 @@ namespace TriggerBot
 			return;
 
 		if (!localEntity.IsAlive())
+			return;
+
+		// atesler arasi minimum süre (spam önleme)
+		auto now = std::chrono::steady_clock::now();
+		long long msSinceLastShot = std::chrono::duration_cast<std::chrono::milliseconds>(now - g_lastShotTime).count();
+		if (msSinceLastShot < 50)
 			return;
 
 		const std::string weapon = GetWeapon(localEntity);
@@ -297,11 +313,8 @@ namespace TriggerBot
 
 			if ((idx + 1) == crosshairEntIndex)
 			{
-				std::thread([delay = TriggerBotCFG::Delay]() {
-					int jitteredDelay = RandomJitter(delay, 15); // ±15ms random varyasyon
-					std::this_thread::sleep_for(std::chrono::milliseconds(jitteredDelay));
-					DoShoot();
-				}).detach();
+				int jitteredDelay = RandomJitter(TriggerBotCFG::Delay, 15);
+				DoShoot(jitteredDelay);
 				break;
 			}
 		}

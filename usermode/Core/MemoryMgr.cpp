@@ -213,18 +213,3 @@ bool MemoryMgr::BatchReadMemory(const std::vector<std::pair<DWORD64, SIZE_T>>& r
     return result == TRUE;
 }
 
-bool MemoryMgr::MouseClick(bool press)
-{
-    if (kernelDriver == nullptr)
-        return false;
-
-    MouseClickRequest req;
-    req.press = press ? TRUE : FALSE;
-
-    BOOL result = DeviceIoControl(kernelDriver,
-        IOCTL_MOUSE_CLICK,
-        &req, sizeof(req),
-        &req, sizeof(req),
-        nullptr, nullptr);
-    return result == TRUE;
-}

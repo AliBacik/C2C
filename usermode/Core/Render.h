@@ -143,46 +143,49 @@ namespace Render
 			return;
 
 		const auto& bonePosList = Entity.GetBone().BonePosList;
-		if (bonePosList.size() < 22)
+		if (bonePosList.size() < 23)
 			return;
-
-		BoneJointPos previous, current;
 
 		float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
 		float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
 
+#ifdef BONE_DEBUG
+		// bone index debug: her bone'u noktala ve index'ini yaz
+		ImDrawList* dbgDraw = ImGui::GetBackgroundDrawList();
+		for (size_t di = 0; di < bonePosList.size() && di < 30; ++di)
+		{
+			Vec2 ds;
+			if (!gGame.View.WorldToScreen(bonePosList[di].Pos, ds)) continue;
+			if (ds.x <= 0.f || ds.y <= 0.f || ds.x >= screenW || ds.y >= screenH) continue;
+			dbgDraw->AddCircleFilled(ImVec2(ds.x, ds.y), 3.f, IM_COL32(255,255,0,255));
+			char lbl[8]; snprintf(lbl, sizeof(lbl), "%d", (int)di);
+			dbgDraw->AddText(ImVec2(ds.x + 4, ds.y - 6), IM_COL32(255,255,255,255), lbl);
+		}
+#endif
+
 		for (const auto& boneChain : BoneJointList::List)
 		{
-			bool hasPrevious = false;
+			Vec2 prevScreen{};
+			bool hasPrev = false;
+
 			for (const auto& index : boneChain)
 			{
 				if (index >= bonePosList.size())
 					continue;
-				current = bonePosList[index];
 
-				// skip bones with invalid screen positions
-				if (current.ScreenPos.x <= 0.f || current.ScreenPos.y <= 0.f ||
-					current.ScreenPos.x >= screenW || current.ScreenPos.y >= screenH)
-				{
-					// still advance previous to this bone so next valid bone connects correctly
-					previous = current;
-					hasPrevious = true;
+				Vec2 curScreen;
+				if (!gGame.View.WorldToScreen(bonePosList[index].Pos, curScreen))
 					continue;
-				}
 
-				if (!hasPrevious) {
-					previous = current;
-					hasPrevious = true;
+				if (curScreen.x <= 0.f || curScreen.y <= 0.f ||
+					curScreen.x >= screenW || curScreen.y >= screenH)
 					continue;
-				}
 
-				// only draw if previous screen pos is also valid
-				if (previous.ScreenPos.x > 0.f && previous.ScreenPos.y > 0.f &&
-					previous.ScreenPos.x < screenW && previous.ScreenPos.y < screenH)
-				{
-					Gui.Line(previous.ScreenPos, current.ScreenPos, Color, Thickness);
-				}
-				previous = current;
+				if (hasPrev)
+					Gui.Line(prevScreen, curScreen, Color, Thickness);
+
+				prevScreen = curScreen;
+				hasPrev = true;
 			}
 		}
 	}
