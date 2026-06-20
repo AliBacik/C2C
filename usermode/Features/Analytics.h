@@ -64,8 +64,6 @@ namespace Analytics
         bool enemyOnCrosshair;
     };
     static std::deque<ShotRecord> g_shotRecords;
-    static int g_preFires;           // atis aninda gorunur enemy yoktu ama sonra gorunur oldu
-    static int g_totalTrackedShots;
 
     // ekran uyarisi
     static std::string g_warningText = "";
@@ -171,6 +169,7 @@ namespace Analytics
         memoryManager.ReadMemory<int>(local.Pawn.Address + Offset.Pawn.iIDEntIndex, crosshairEntIndex);
 
         bool enemyOnCrosshair = IsEnemyVisible(crosshairEntIndex, entities, local.Controller.TeamID);
+        int currentShotsFired = local.Pawn.ShotsFired;
 
         // --- Tracking korelasyonu ---
         // crosshair entity olmasa da (duvar arkasi) en yakin dusmaninı takip edip etmedigini kontrol et
@@ -333,7 +332,6 @@ namespace Analytics
 
         // --- Headshot orani ---
         // Sadece crosshair'da enemy varken sayiyoruz
-        int currentShotsFired = local.Pawn.ShotsFired;
         if (currentShotsFired > g_prevShotsFired && enemyOnCrosshair)
         {
             int newShots = currentShotsFired - g_prevShotsFired;
