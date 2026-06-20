@@ -41,24 +41,24 @@ static NTSTATUS device_initialize(PCWSTR device_name)
 
 BOOL mouse_open(void)
 {
-	NTSTATUS status = 0;
+	if (g_input != 0)
+		return 1;
 
+	static const wchar_t* paths[] = {
+		L"\\??\\ROOT#SYSTEM#0002#{1abc05c0-c378-41b9-9cef-df1aba82b015}",
+		L"\\??\\ROOT#SYSTEM#0001#{1abc05c0-c378-41b9-9cef-df1aba82b015}",
+		L"\\??\\ROOT#SYSTEM#0003#{1abc05c0-c378-41b9-9cef-df1aba82b015}",
+		L"\\??\\ROOT#SYSTEM#0000#{1abc05c0-c378-41b9-9cef-df1aba82b015}",
+	};
 
-	if (g_input == 0) {
-
-		wchar_t buffer0[] = L"\\??\\ROOT#SYSTEM#0002#{1abc05c0-c378-41b9-9cef-df1aba82b015}";
-
-		status = device_initialize(buffer0);
-		if (NT_SUCCESS(status))
+	for (auto& path : paths) {
+		NTSTATUS status = device_initialize(path);
+		if (NT_SUCCESS(status)) {
 			g_found_mouse = 1;
-		else {
-			wchar_t buffer1[] = L"\\??\\ROOT#SYSTEM#0001#{1abc05c0-c378-41b9-9cef-df1aba82b015}";
-			status = device_initialize(buffer1);
-			if (NT_SUCCESS(status))
-				g_found_mouse = 1;
+			return 1;
 		}
 	}
-	return status == 0;
+	return 0;
 }
 
 

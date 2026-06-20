@@ -111,13 +111,7 @@
     <ClInclude Include="Game\Bone.h">
       <Filter>Game</Filter>
     </ClInclude>
-    <ClInclude Include="Features\BombTimer.h">
-      <Filter>Features\Misc</Filter>
-    </ClInclude>
     <ClInclude Include="Features\Misc.h">
-      <Filter>Features\Misc</Filter>
-    </ClInclude>
-    <ClInclude Include="Features\SpectatorList.h">
       <Filter>Features\Misc</Filter>
     </ClInclude>
     <ClInclude Include="Features\ESP.h">
@@ -125,15 +119,6 @@
     </ClInclude>
     <ClInclude Include="Features\Radar.h">
       <Filter>Features\Visual</Filter>
-    </ClInclude>
-    <ClInclude Include="Features\RCS.h">
-      <Filter>Features\Legit</Filter>
-    </ClInclude>
-    <ClInclude Include="Features\SoundESP.h">
-      <Filter>Features\Visual</Filter>
-    </ClInclude>
-    <ClInclude Include="Features\TriggerBot.h">
-      <Filter>Features\Legit</Filter>
     </ClInclude>
     <ClInclude Include="Helpers\Mouse.h">
       <Filter>Helpers</Filter>
@@ -170,9 +155,6 @@
     </ClInclude>
     <ClInclude Include="Offsets\Offsets.h">
       <Filter>Offsets</Filter>
-    </ClInclude>
-    <ClInclude Include="Features\Aimbot.h">
-      <Filter>Features\Legit</Filter>
     </ClInclude>
     <ClInclude Include="Helpers\WebApi.h">
       <Filter>Helpers</Filter>
@@ -246,9 +228,6 @@
     <ClCompile Include="Features\Radar.cpp">
       <Filter>Features\Visual</Filter>
     </ClCompile>
-    <ClCompile Include="Features\TriggerBot.cpp">
-      <Filter>Features\Legit</Filter>
-    </ClCompile>
     <ClCompile Include="Helpers\Mouse.cpp">
       <Filter>Helpers</Filter>
     </ClCompile>
@@ -267,14 +246,8 @@
     <ClCompile Include="Config\ConfigMenu.cpp">
       <Filter>Config</Filter>
     </ClCompile>
-    <ClCompile Include="Features\Aimbot.cpp">
-      <Filter>Features\Legit</Filter>
-    </ClCompile>
     <ClCompile Include="Offsets\Offsets.cpp">
       <Filter>Offsets</Filter>
-    </ClCompile>
-    <ClCompile Include="Features\RCS.cpp">
-      <Filter>Features\Legit</Filter>
     </ClCompile>
     <ClCompile Include="Core\MemoryMgr.cpp">
       <Filter>Core</Filter>

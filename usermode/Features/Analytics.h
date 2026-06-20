@@ -30,6 +30,9 @@ namespace Analytics
     static std::deque<TrackSample> g_trackSamples;
     static float g_trackingScore = 0.f;
 
+    static int g_preFires = 0;
+    static int g_totalTrackedShots = 0;
+
     // triggerbot atis zamanlari
     static std::deque<TimePoint> g_shotTimes;
     static TimePoint g_enemyVisibleSince{};
@@ -52,6 +55,17 @@ namespace Analytics
     };
     static std::deque<PeekEvent> g_peekEvents;
     static std::unordered_map<int, bool> g_enemyWasVisibleMap; // idx -> onceki frame gorunurlugu
+
+    // pre-fire / wallbang detection
+    struct ShotRecord
+    {
+        TimePoint shotAt;
+        float angleToClosestEnemy; // atis aninda en yakin dusmanin acisi
+        bool enemyOnCrosshair;
+    };
+    static std::deque<ShotRecord> g_shotRecords;
+    static int g_preFires;           // atis aninda gorunur enemy yoktu ama sonra gorunur oldu
+    static int g_totalTrackedShots;
 
     // ekran uyarisi
     static std::string g_warningText = "";
@@ -79,8 +93,11 @@ namespace Analytics
     {
         float dx = enemy.Pawn.Pos.x - local.Pawn.Pos.x;
         float dy = enemy.Pawn.Pos.y - local.Pawn.Pos.y;
+        // CS2 yaw: east=0, north=90 (or -90 depending on convention)
+        // ViewAngle.y is in -180..180 where 0=east, 90=south, -90=north
+        // atan2(dy,dx) gives math angle, convert to CS2 yaw convention
         float angle = atan2f(dy, dx) * (180.f / 3.14159265f);
-        angle = -angle + 90.f;
+        // Result is in -180..180 matching ViewAngle.y range
         return angle;
     }
 
@@ -156,10 +173,11 @@ namespace Analytics
         bool enemyOnCrosshair = IsEnemyVisible(crosshairEntIndex, entities, local.Controller.TeamID);
 
         // --- Tracking korelasyonu ---
-        if (crosshairEntIndex > 0 && !enemyOnCrosshair)
+        // crosshair entity olmasa da (duvar arkasi) en yakin dusmaninı takip edip etmedigini kontrol et
+        if (!enemyOnCrosshair)
         {
             const CEntity* closestEnemy = nullptr;
-            float closestAngleDiff = 45.f;
+            float closestAngleDiff = 30.f;
 
             for (const auto& [idx, entity] : entities)
             {
@@ -185,13 +203,13 @@ namespace Analytics
                 float correlation = CalcTrackingCorrelation();
                 g_trackingScore = g_trackingScore * 0.85f + correlation * 0.15f;
 
-                if (g_trackingScore > 0.75f)
+                if (g_trackingScore > 0.55f)
                 {
                     AddScore(dt * 15.f);
                     if (g_warningAlpha < 0.1f)
                         ShowWarning("Wall tracking detected! Stop.");
                 }
-                else if (g_trackingScore > 0.5f)
+                else if (g_trackingScore > 0.35f)
                     AddScore(dt * 5.f);
             }
         }
@@ -199,6 +217,36 @@ namespace Analytics
         {
             g_trackSamples.clear();
             g_trackingScore *= 0.9f;
+        }
+
+        // --- Pre-fire / Wallbang detection ---
+        // Atis aninda crosshair'da enemy yoksa ama atis o yonde biri peek yapinca kisa sure sonra
+        // gorunur olursa bu pre-fire / wall-track sayilir
+
+        // Ates edildiyse kaydet
+        if (triggerbotFired || (currentShotsFired > g_prevShotsFired && !enemyOnCrosshair))
+        {
+            ShotRecord rec;
+            rec.shotAt = now;
+            rec.enemyOnCrosshair = enemyOnCrosshair;
+            rec.angleToClosestEnemy = 999.f;
+
+            // En yakin dusmanin acisini kaydet
+            for (const auto& [idx, entity] : entities)
+            {
+                if (!entity.IsAlive()) continue;
+                if (entity.Controller.TeamID == local.Controller.TeamID) continue;
+                float a = AngleDiff(local.Pawn.ViewAngle.y, CalcAngleToEnemy(local, entity));
+                if (a < rec.angleToClosestEnemy)
+                    rec.angleToClosestEnemy = a;
+            }
+
+            g_shotRecords.push_back(rec);
+            if (g_shotRecords.size() > 30)
+                g_shotRecords.pop_front();
+
+            if (!enemyOnCrosshair)
+                g_totalTrackedShots++;
         }
 
         // --- Peek counter ---
@@ -213,7 +261,26 @@ namespace Analytics
 
             if (isVisibleNow && !wasVisible)
             {
-                // dusman yeni gorunur oldu - peek basladi
+                // Dusman yeni gorunur oldu: son 350ms icinde bu yonde atis yapilmis mi?
+                float enemyAngle = CalcAngleToEnemy(local, entity);
+                for (auto& rec : g_shotRecords)
+                {
+                    if (rec.enemyOnCrosshair) continue; // crosshair'da enemy vardi zaten
+                    float msAgo = std::chrono::duration<float>(now - rec.shotAt).count() * 1000.f;
+                    if (msAgo < 0.f || msAgo > 350.f) continue;
+                    float angleDiff = AngleDiff(local.Pawn.ViewAngle.y, enemyAngle);
+                    // atis aninda bu dusmanin yonunde (30 derece tolerans) ates edildiyse pre-fire
+                    if (rec.angleToClosestEnemy < 30.f)
+                    {
+                        g_preFires++;
+                        AddScore(18.f);
+                        if (g_warningAlpha < 0.1f)
+                            ShowWarning("Pre-fire detected! Be less obvious.");
+                        break;
+                    }
+                }
+
+                // peek basladi
                 PeekEvent ev;
                 ev.visibleAt = now;
                 ev.reactionMs = -1.f;
@@ -265,15 +332,16 @@ namespace Analytics
         }
 
         // --- Headshot orani ---
+        // Sadece crosshair'da enemy varken sayiyoruz
         int currentShotsFired = local.Pawn.ShotsFired;
-        if (currentShotsFired > g_prevShotsFired)
+        if (currentShotsFired > g_prevShotsFired && enemyOnCrosshair)
         {
             int newShots = currentShotsFired - g_prevShotsFired;
             g_totalShots += newShots;
 
-            // pitch -8 ile 5 derece arasindaysa kafa hizasinda sayiyoruz
+            // pitch -5 ile 3 derece arasindaysa kafa hizasinda sayiyoruz
             float pitch = local.Pawn.ViewAngle.x;
-            if (pitch > -8.f && pitch < 5.f)
+            if (pitch > -5.f && pitch < 3.f)
                 g_headshotShots += newShots;
 
             if (g_totalShots >= 10)
@@ -429,6 +497,18 @@ namespace Analytics
         // tracking uyarisi
         if (g_trackingScore > 0.5f)
             ImGui::TextColored(ImColor(220, 60, 60, 255).Value, "! Wall tracking");
+
+        // pre-fire sayaci
+        if (g_totalTrackedShots >= 3)
+        {
+            float preFireRate = (float)g_preFires / (float)g_totalTrackedShots;
+            char pfText[32];
+            snprintf(pfText, sizeof(pfText), "Pre-fire: %d", g_preFires);
+            ImColor pfColor = g_preFires >= 3 ? ImColor(220, 60, 60, 255) :
+                              g_preFires >= 1 ? ImColor(220, 180, 50, 255) :
+                                                ImColor(160, 160, 160, 255);
+            ImGui::TextColored(pfColor.Value, "%s", pfText);
+        }
 
         ImGui::End();
     }

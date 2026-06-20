@@ -14,39 +14,23 @@ bool CBone::UpdateAllBoneData(const DWORD64& EntityPawnAddress) {
     if (!memoryManager.ReadMemory(gameSceneNodeAddr + Offset.Pawn.BoneArray, boneArrayAddr))
         return false;
 
-    constexpr size_t NUM_BONES = 30;
+    constexpr size_t NUM_BONES = 64;
 
-    // Read bone data (position + rotation)
-    CBoneData IData[NUM_BONES];
-    if (!memoryManager.ReadMemory(boneArrayAddr, IData, NUM_BONES * sizeof(CBoneData)))
+    // Read all bone positions at once (each bone: Vec3 pos + float scale + Quaternion = 32 bytes)
+    BoneJointData boneData[NUM_BONES];
+    if (!memoryManager.ReadMemory(boneArrayAddr, boneData, NUM_BONES * sizeof(BoneJointData)))
         return false;
 
-    // Read original bone data (position only)
-    BoneJointData originalData[NUM_BONES];
-    if (!memoryManager.ReadMemory(boneArrayAddr, originalData, NUM_BONES * sizeof(BoneJointData)))
-        return false;
-
-    // Clear both lists
     BonePosList.clear();
     IBoneData.clear();
     BonePosList.reserve(NUM_BONES);
     IBoneData.reserve(NUM_BONES);
 
-    // Populate both data structures
     for (size_t i = 0; i < NUM_BONES; ++i) {
-        // Get screen position
         Vec2 screenPos;
-        bool visible = gGame.View.WorldToScreen(originalData[i].Pos, screenPos);
-
-        // Store original bone data (for compatibility)
-        BonePosList.push_back({ originalData[i].Pos, screenPos, visible });
-
-        // Store bone data
-        IBoneData.push_back({
-            originalData[i].Pos,  // Location
-            originalData[i].Scale,  // Scale
-            IData[i].Rotation  // Rotation
-            });
+        bool visible = gGame.View.WorldToScreen(boneData[i].Pos, screenPos);
+        BonePosList.push_back({ boneData[i].Pos, screenPos, visible });
+        IBoneData.push_back({ boneData[i].Pos, boneData[i].Scale, boneData[i].Rotation });
     }
     return true;
 }

@@ -179,31 +179,21 @@ namespace GUI
 				if (MenuConfig::WCS.MenuPage == 0)
 				{
 					ImGui::Columns(2, nullptr, false);
-					ImGui::SetCursorPos(ImVec2(15.f, 24.f));
+					ImGui::SetColumnWidth(0, 270.f);
+					ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 5.f);
 					ImGui::GradientText("ESP - Skeleton");
 
 					PutSwitch(Text::ESP::Enable.c_str(), 10.f, ImGui::GetFrameHeight() * 1.7, &ESPConfig::ESPenabled);
-
 					if (ESPConfig::ESPenabled)
 					{
 						PutSwitch(Text::ESP::Skeleton.c_str(), 10.f, ImGui::GetFrameHeight() * 1.7, &ESPConfig::ShowBoneESP, true, "###BoneCol", reinterpret_cast<float*>(&ESPConfig::BoneColor));
 						PutSwitch(Text::ESP::HeadBox.c_str(), 10.f, ImGui::GetFrameHeight() * 1.7, &ESPConfig::ShowHeadBox, true, "###HeadBoxCol", reinterpret_cast<float*>(&ESPConfig::HeadBoxColor));
+						PutSwitch("Health Bar", 10.f, ImGui::GetFrameHeight() * 1.7, &ESPConfig::ShowHealthBar);
+						PutSwitch("View Direction", 10.f, ImGui::GetFrameHeight() * 1.7, &ESPConfig::ShowEyeRay);
 					}
-					ImGui::NewLine();
 
-					ImGui::GradientText("Trigger Bot");
-					PutSwitch("Enable##tb", 10.f, ImGui::GetFrameHeight() * 1.7, &TriggerBotCFG::Enabled);
-					if (TriggerBotCFG::Enabled)
-					{
-						static const int DelayMin = 10, DelayMax = 500;
-						PutSliderInt("Delay (ms)", 10.f, &TriggerBotCFG::Delay, &DelayMin, &DelayMax, "%d ms");
-						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 10.f);
-						ImGui::TextDisabled("Hotkey: ALT (hold)");
-					}
-					ImGui::NewLine();
-
+					// Sag: Preview + Radar
 					ImGui::NextColumn();
-					ImGui::SetCursorPosY(24.f);
 					ImGui::GradientText("Preview");
 					ESP::RenderPreview({ ImGui::GetColumnWidth(), ImGui::GetCursorPosY() });
 					ImGui::Dummy({ 0.f, ImGui::GetFrameHeight() * 9 });
@@ -217,7 +207,6 @@ namespace GUI
 					if (RadarCFG::ShowRadar)
 					{
 						PutSwitch(Text::Radar::CustomCheck.c_str(), 5.f, ImGui::GetFrameHeight() * 1.7, &RadarCFG::customRadar);
-
 						if (RadarCFG::customRadar)
 						{
 							PutSwitch(Text::Radar::CrossLine.c_str(), 5.f, ImGui::GetFrameHeight() * 1.7, &RadarCFG::ShowRadarCrossLine);
@@ -233,53 +222,78 @@ namespace GUI
 
 				if (MenuConfig::WCS.MenuPage == 1)
 				{
-					ImGui::Columns(2, nullptr, false);
-					ImGui::SetCursorPos(ImVec2(15.f, 24.f));
-					ImGui::GradientText("Settings");
+					float childH = MenuConfig::WCS.ChildSize.y - ImGui::GetCursorPosY() - 8.f;
+					float leftW = 265.f;
+					float rightW = MenuConfig::WCS.ChildSize.x - leftW - 12.f;
 
-					ImGui::TextDisabled("Menu Hotkey");
-					ImGui::SameLine();
-					AlignRight(70.f);
-					if (ImGui::Button("Set", { 70.f, 25.f }))
+					// Sol child: Trigger Bot + Settings + WH Helper
+					ImGui::BeginChild("##cfg_left", ImVec2(leftW, childH), false, ImGuiWindowFlags_NoScrollbar);
 					{
-						std::thread([&]() {
-							std::string keyName = "Menu";
-							KeyMgr::GetPressedKey(MenuConfig::HotKey, &keyName);
+						ImGui::GradientText("Trigger Bot");
+						PutSwitch("Enable Trigger Bot", 5.f, ImGui::GetFrameHeight() * 1.7, &TriggerBotCFG::Enabled);
+						if (TriggerBotCFG::Enabled)
+						{
+							static const int DelayMin = 10, DelayMax = 500;
+							PutSliderInt("Delay (ms)", 5.f, &TriggerBotCFG::Delay, &DelayMin, &DelayMax, "%d ms");
+							ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 5.f);
+							ImGui::TextDisabled("Hotkey: ALT (hold)");
+						}
+
+						ImGui::NewLine();
+						ImGui::GradientText("Settings");
+
+						ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 5.f);
+						ImGui::TextDisabled("Menu Hotkey");
+						ImGui::SameLine();
+						ImGui::SetCursorPosX(leftW - 75.f);
+						if (ImGui::Button("Set", { 70.f, 25.f }))
+						{
+							std::thread([&]() {
+								std::string keyName = "Menu";
+								KeyMgr::GetPressedKey(MenuConfig::HotKey, &keyName);
 							}).detach();
+						}
+
+						PutSwitch("Behavior Meter", 5.f, ImGui::GetFrameHeight() * 1.7, &AnalyticsCFG::Enabled);
+						PutSwitch("Spectator Mode", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::WorkInSpec);
+						PutSwitch("Team Check", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::TeamCheck);
+						PutSwitch("Anti-Record (OBS)", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::BypassOBS);
+
+						ImGui::NewLine();
+						ImGui::GradientText("WH Helper");
+						PutSwitch("Enable##wh", 5.f, ImGui::GetFrameHeight() * 1.7, &WallHackHelperCFG::Enabled);
+						if (WallHackHelperCFG::Enabled)
+						{
+							static const int SafeMin = 50, SafeMax = 800;
+							static const int PreAimMin = 50, PreAimMax = 300;
+							PutSliderInt("Cold Peek (ms)", 5.f, &WallHackHelperCFG::SafeDelayMs, &SafeMin, &SafeMax, "%d ms");
+							PutSliderInt("Pre-Aim (ms)", 5.f, &WallHackHelperCFG::PreAimDelayMs, &PreAimMin, &PreAimMax, "%d ms");
+						}
+
+						ImGui::NewLine();
+						ImGui::Separator();
+						ImGui::NewLine();
+
+						if (ImGui::Button("Unhook", { 115.f, 25.f }))
+							Init::Client::Exit();
+						ImGui::SameLine();
+						if (ImGui::Button("Clear Traces", { 115.f, 25.f }))
+						{
+							Misc::CleanTraces();
+							Init::Client::Exit();
+						}
 					}
+					ImGui::EndChild();
 
-					PutSwitch("Behavior Meter", 5.f, ImGui::GetFrameHeight() * 1.7, &AnalyticsCFG::Enabled);
-					PutSwitch("WH Helper", 5.f, ImGui::GetFrameHeight() * 1.7, &WallHackHelperCFG::Enabled);
-					if (WallHackHelperCFG::Enabled)
-					{
-						static const int SafeMin = 50, SafeMax = 800;
-						static const int PreAimMin = 50, PreAimMax = 300;
-						PutSliderInt("Cold Peek (ms)", 5.f, &WallHackHelperCFG::SafeDelayMs, &SafeMin, &SafeMax, "%d ms");
-						PutSliderInt("Pre-Aim (ms)", 5.f, &WallHackHelperCFG::PreAimDelayMs, &PreAimMin, &PreAimMax, "%d ms");
-					}
-					PutSwitch("Spectator Mode", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::WorkInSpec);
-					PutSwitch("Team Check", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::TeamCheck);
-					PutSwitch("Anti-Record (OBS)", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::BypassOBS);
-
-					ImGui::NewLine();
-					ImGui::Separator();
-					ImGui::NewLine();
-
-					if (ImGui::Button("Unhook", { 125.f, 25.f }))
-						Init::Client::Exit();
 					ImGui::SameLine();
-					if (ImGui::Button("Clear Traces", { 125.f, 25.f }))
+
+					// Sag child: Config
+					ImGui::BeginChild("##cfg_right", ImVec2(rightW, childH), false, ImGuiWindowFlags_NoScrollbar);
 					{
-						Misc::CleanTraces();
-						Init::Client::Exit();
+						ImGui::GradientText("Config");
+						ConfigMenu::RenderCFGmenu();
 					}
-
-					ImGui::NextColumn();
-					ImGui::SetCursorPosY(24.f);
-					ImGui::GradientText("Config");
-					ConfigMenu::RenderCFGmenu();
-
-					ImGui::Columns(1);
+					ImGui::EndChild();
 				}
 
 				ImGui::NewLine();

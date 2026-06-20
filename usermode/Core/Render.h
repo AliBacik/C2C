@@ -103,18 +103,28 @@ namespace Render
 		if (bonePosList.empty())
 			return ImVec4(0, 0, 0, 0);
 
-		Vec2 minPos = bonePosList[0].ScreenPos;
-		Vec2 maxPos = bonePosList[0].ScreenPos;
+		float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
+		float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
+
+		bool first = true;
+		Vec2 minPos, maxPos;
 
 		for (const auto& boneJoint : bonePosList)
 		{
-			if (!boneJoint.IsVisible)
+			const Vec2& sp = boneJoint.ScreenPos;
+			if (sp.x <= 0.f || sp.y <= 0.f || sp.x >= screenW || sp.y >= screenH)
 				continue;
-			minPos.x = std::min(boneJoint.ScreenPos.x, minPos.x);
-			minPos.y = std::min(boneJoint.ScreenPos.y, minPos.y);
-			maxPos.x = std::max(boneJoint.ScreenPos.x, maxPos.x);
-			maxPos.y = std::max(boneJoint.ScreenPos.y, maxPos.y);
+			if (first) {
+				minPos = maxPos = sp;
+				first = false;
+			} else {
+				minPos.x = std::min(sp.x, minPos.x);
+				minPos.y = std::min(sp.y, minPos.y);
+				maxPos.x = std::max(sp.x, maxPos.x);
+				maxPos.y = std::max(sp.y, maxPos.y);
+			}
 		}
+		if (first) return ImVec4(0, 0, 0, 0);
 
 		BoneJointPos headBone = Entity.GetBone().BonePosList[BONEINDEX::head];
 		const float diffY = maxPos.y - headBone.ScreenPos.y;
@@ -139,20 +149,42 @@ namespace Render
 			return;
 
 		const auto& bonePosList = Entity.GetBone().BonePosList;
+		if (bonePosList.size() < 28)
+			return;
+
 		BoneJointPos previous, current;
+
+		float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
+		float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
 
 		for (const auto& boneChain : BoneJointList::List)
 		{
-			previous.Pos = Vec3(0, 0, 0);
+			bool hasPrevious = false;
 			for (const auto& index : boneChain)
 			{
+				if (index >= bonePosList.size())
+					continue;
 				current = bonePosList[index];
-				if (previous.Pos == Vec3(0, 0, 0))
+
+				// skip bones with invalid screen positions
+				if (current.ScreenPos.x <= 0.f || current.ScreenPos.y <= 0.f ||
+					current.ScreenPos.x >= screenW || current.ScreenPos.y >= screenH)
 				{
+					// still advance previous to this bone so next valid bone connects correctly
 					previous = current;
+					hasPrevious = true;
 					continue;
 				}
-				if (previous.IsVisible && current.IsVisible)
+
+				if (!hasPrevious) {
+					previous = current;
+					hasPrevious = true;
+					continue;
+				}
+
+				// only draw if previous screen pos is also valid
+				if (previous.ScreenPos.x > 0.f && previous.ScreenPos.y > 0.f &&
+					previous.ScreenPos.x < screenW && previous.ScreenPos.y < screenH)
 				{
 					Gui.Line(previous.ScreenPos, current.ScreenPos, Color, Thickness);
 				}
@@ -194,18 +226,30 @@ namespace Render
 		if (bonePosList.empty())
 			return ImVec4(0, 0, 0, 0);
 
-		Vec2 minPos = bonePosList[0].ScreenPos;
-		Vec2 maxPos = bonePosList[0].ScreenPos;
+		float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
+		float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
+
+		bool first = true;
+		Vec2 minPos, maxPos;
 
 		for (const auto& boneJoint : bonePosList)
 		{
-			if (!boneJoint.IsVisible)
+			const Vec2& sp = boneJoint.ScreenPos;
+			// skip invalid / off-screen positions
+			if (sp.x <= 0.f || sp.y <= 0.f || sp.x >= screenW || sp.y >= screenH)
 				continue;
-			minPos.x = std::min(boneJoint.ScreenPos.x, minPos.x);
-			minPos.y = std::min(boneJoint.ScreenPos.y, minPos.y);
-			maxPos.x = std::max(boneJoint.ScreenPos.x, maxPos.x);
-			maxPos.y = std::max(boneJoint.ScreenPos.y, maxPos.y);
+			if (first) {
+				minPos = maxPos = sp;
+				first = false;
+			} else {
+				minPos.x = std::min(sp.x, minPos.x);
+				minPos.y = std::min(sp.y, minPos.y);
+				maxPos.x = std::max(sp.x, maxPos.x);
+				maxPos.y = std::max(sp.y, maxPos.y);
+			}
 		}
+
+		if (first) return ImVec4(0, 0, 0, 0);
 
 		const Vec2 size{ maxPos.x - minPos.x, maxPos.y - minPos.y };
 		return ImVec4(minPos.x, minPos.y, size.x, size.y);

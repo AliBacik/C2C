@@ -260,8 +260,12 @@ void Cheats::HandleEnts(const std::vector<EntityResult>& entities, CEntity& loca
 				// healthbar
 				if(ESPConfig::ShowHealthBar || ESPConfig::ShowHealthNum)
 				{
-					ImVec2 HealthBarPos = { Rect.x - 6.f, Rect.y };
-					ImVec2 HealthBarSize = { 4, Rect.w };
+					ImVec4 boneRect = Render::Get2DBoneRect(entity);
+					float barX = (boneRect.z > 0) ? boneRect.x - 6.f : Rect.x - 6.f;
+					float barY = (boneRect.w > 0) ? boneRect.y : Rect.y;
+					float barH = (boneRect.w > 0) ? boneRect.w : Rect.w;
+					ImVec2 HealthBarPos = { barX, barY };
+					ImVec2 HealthBarSize = { 4, barH };
 					Render::DrawHealthBar(entity.Controller.Address, 100, entity.Pawn.Health, HealthBarPos, HealthBarSize);
 				}
 
