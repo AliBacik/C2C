@@ -5,6 +5,7 @@
 #include "../Core/Config.h"
 #include "../Game/Entity.h"
 #include "../OS-ImGui/imgui/imgui.h"
+#include "../Core/Cheats.h"
 
 namespace WallHackHelper
 {
@@ -19,32 +20,32 @@ namespace WallHackHelper
     // hangi delay uygulanacak
     static std::unordered_map<DWORD64, int> g_effectiveDelay;
 
-    static inline void Update(const std::vector<std::pair<int, CEntity>>& entities,
+    static inline void Update(const std::vector<EntityResult>& results,
         int localTeam, int crosshairEntIndex)
     {
         if (!WallHackHelperCFG::Enabled) return;
 
         auto now = Clock::now();
 
-        for (const auto& [idx, entity] : entities)
+        for (const auto& result : results)
         {
+            if (!result.isValid) continue;
+            const auto& entity = result.entity;
             if (!entity.IsAlive()) continue;
             if (entity.Controller.TeamID == localTeam) continue;
 
             DWORD64 addr = entity.Controller.Address;
-            bool isVisible = entity.Pawn.bSpottedByMask > 0;
+            bool isVisible = result.isInScreen;
             bool wasVis = g_wasVisible.count(addr) ? g_wasVisible[addr] : false;
 
             if (isVisible && !wasVis)
             {
-                // yeni gorunur oldu
                 g_visibleSince[addr] = now;
 
-                // gorunmeden once crosshair bu dusmana bakiyordu mu?
                 bool preAimed = g_wasPreAimed.count(addr) ? g_wasPreAimed[addr] : false;
                 g_effectiveDelay[addr] = preAimed
-                    ? WallHackHelperCFG::PreAimDelayMs   // zaten nisanliydi = kisa sure
-                    : WallHackHelperCFG::SafeDelayMs;    // cold peek = uzun sure
+                    ? WallHackHelperCFG::PreAimDelayMs
+                    : WallHackHelperCFG::SafeDelayMs;
             }
             else if (!isVisible)
             {
@@ -52,8 +53,7 @@ namespace WallHackHelper
                 g_effectiveDelay.erase(addr);
             }
 
-            // crosshair su an bu dusmana bakiyor mu kaydet (sonraki frame icin)
-            bool onCrosshair = (crosshairEntIndex > 0 && (idx + 1) == crosshairEntIndex);
+            bool onCrosshair = (crosshairEntIndex > 0 && (result.entityIndex + 1) == crosshairEntIndex);
             g_wasPreAimed[addr] = onCrosshair;
             g_wasVisible[addr] = isVisible;
         }
@@ -62,8 +62,8 @@ namespace WallHackHelper
         for (auto it = g_visibleSince.begin(); it != g_visibleSince.end();)
         {
             bool found = false;
-            for (const auto& [idx, entity] : entities)
-                if (entity.Controller.Address == it->first) { found = true; break; }
+            for (const auto& result : results)
+                if (result.entity.Controller.Address == it->first) { found = true; break; }
             if (!found) it = g_visibleSince.erase(it);
             else ++it;
         }

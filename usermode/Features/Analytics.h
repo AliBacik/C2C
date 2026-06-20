@@ -11,6 +11,7 @@
 #include "../Offsets/Offsets.h"
 #include "../Core/GlobalVars.h"
 #include "../OS-ImGui/imgui/imgui.h"
+#include "../Core/Cheats.h"
 
 namespace Analytics
 {
@@ -137,20 +138,21 @@ namespace Analytics
     }
 
     static inline bool IsEnemyVisible(int crosshairEntIndex,
-        const std::vector<std::pair<int, CEntity>>& entities, int localTeam)
+        const std::vector<EntityResult>& results, int localTeam)
     {
         if (crosshairEntIndex <= 0) return false;
-        for (const auto& [idx, entity] : entities)
+        for (const auto& result : results)
         {
-            if (!entity.IsAlive()) continue;
-            if (entity.Controller.TeamID == localTeam) continue;
-            if ((idx + 1) == crosshairEntIndex) return true;
+            if (!result.isValid) continue;
+            if (!result.entity.IsAlive()) continue;
+            if (result.entity.Controller.TeamID == localTeam) continue;
+            if ((result.entityIndex + 1) == crosshairEntIndex) return true;
         }
         return false;
     }
 
     static inline void Update(const CEntity& local,
-        const std::vector<std::pair<int, CEntity>>& entities, bool triggerbotFired)
+        const std::vector<EntityResult>& entityResults, bool triggerbotFired)
     {
         auto now = Clock::now();
         float dt = std::chrono::duration<float>(now - g_lastUpdate).count();
@@ -168,31 +170,34 @@ namespace Analytics
         int crosshairEntIndex = 0;
         memoryManager.ReadMemory<int>(local.Pawn.Address + Offset.Pawn.iIDEntIndex, crosshairEntIndex);
 
-        bool enemyOnCrosshair = IsEnemyVisible(crosshairEntIndex, entities, local.Controller.TeamID);
+        bool enemyOnCrosshair = IsEnemyVisible(crosshairEntIndex, entityResults, local.Controller.TeamID);
         int currentShotsFired = local.Pawn.ShotsFired;
 
         // --- Tracking korelasyonu ---
-        // crosshair entity olmasa da (duvar arkasi) en yakin dusmaninı takip edip etmedigini kontrol et
-        if (!enemyOnCrosshair)
+        // Dusman kameraya gore gorunmüyorsa (isInScreen false) ama yönünde aim tutuyorsa wall-tracking say
         {
             const CEntity* closestEnemy = nullptr;
             float closestAngleDiff = 30.f;
+            bool closestIsVisible = false;
 
-            for (const auto& [idx, entity] : entities)
+            for (const auto& result : entityResults)
             {
-                if (!entity.IsAlive()) continue;
-                if (entity.Controller.TeamID == local.Controller.TeamID) continue;
+                if (!result.isValid) continue;
+                if (!result.entity.IsAlive()) continue;
+                if (result.entity.Controller.TeamID == local.Controller.TeamID) continue;
 
-                float angleToEnemy = CalcAngleToEnemy(local, entity);
+                float angleToEnemy = CalcAngleToEnemy(local, result.entity);
                 float diff = AngleDiff(local.Pawn.ViewAngle.y, angleToEnemy);
                 if (diff < closestAngleDiff)
                 {
                     closestAngleDiff = diff;
-                    closestEnemy = &entity;
+                    closestEnemy = &result.entity;
+                    closestIsVisible = result.isInScreen;
                 }
             }
 
-            if (closestEnemy)
+            // Dusman görünmüyor ama aim yönünde: wall tracking örneği kaydet
+            if (closestEnemy && !closestIsVisible)
             {
                 float enemyYaw = CalcAngleToEnemy(local, *closestEnemy);
                 g_trackSamples.push_back({ local.Pawn.ViewAngle.y, enemyYaw, now });
@@ -211,11 +216,12 @@ namespace Analytics
                 else if (g_trackingScore > 0.35f)
                     AddScore(dt * 5.f);
             }
-        }
-        else
-        {
-            g_trackSamples.clear();
-            g_trackingScore *= 0.9f;
+            else
+            {
+                // Dusman görünüyor ya da yakında yok: örnekleri temizle, score yavaşça azalt
+                g_trackSamples.clear();
+                g_trackingScore *= 0.95f;
+            }
         }
 
         // --- Pre-fire / Wallbang detection ---
@@ -231,11 +237,12 @@ namespace Analytics
             rec.angleToClosestEnemy = 999.f;
 
             // En yakin dusmanin acisini kaydet
-            for (const auto& [idx, entity] : entities)
+            for (const auto& result : entityResults)
             {
-                if (!entity.IsAlive()) continue;
-                if (entity.Controller.TeamID == local.Controller.TeamID) continue;
-                float a = AngleDiff(local.Pawn.ViewAngle.y, CalcAngleToEnemy(local, entity));
+                if (!result.isValid) continue;
+                if (!result.entity.IsAlive()) continue;
+                if (result.entity.Controller.TeamID == local.Controller.TeamID) continue;
+                float a = AngleDiff(local.Pawn.ViewAngle.y, CalcAngleToEnemy(local, result.entity));
                 if (a < rec.angleToClosestEnemy)
                     rec.angleToClosestEnemy = a;
             }
@@ -249,26 +256,26 @@ namespace Analytics
         }
 
         // --- Peek counter ---
-        // her dusman icin gorunurluk degisimini takip et
-        for (const auto& [idx, entity] : entities)
+        // her dusman icin kameraya gore gorunurluk degisimini takip et (isInScreen = camera-based)
+        for (const auto& result : entityResults)
         {
-            if (!entity.IsAlive()) continue;
-            if (entity.Controller.TeamID == local.Controller.TeamID) continue;
+            if (!result.isValid) continue;
+            if (!result.entity.IsAlive()) continue;
+            if (result.entity.Controller.TeamID == local.Controller.TeamID) continue;
 
-            bool isVisibleNow = entity.Pawn.bSpottedByMask > 0;
+            int idx = result.entityIndex;
+            bool isVisibleNow = result.isInScreen;
             bool wasVisible = g_enemyWasVisibleMap.count(idx) ? g_enemyWasVisibleMap[idx] : false;
 
             if (isVisibleNow && !wasVisible)
             {
                 // Dusman yeni gorunur oldu: son 350ms icinde bu yonde atis yapilmis mi?
-                float enemyAngle = CalcAngleToEnemy(local, entity);
+                float enemyAngle = CalcAngleToEnemy(local, result.entity);
                 for (auto& rec : g_shotRecords)
                 {
-                    if (rec.enemyOnCrosshair) continue; // crosshair'da enemy vardi zaten
+                    if (rec.enemyOnCrosshair) continue;
                     float msAgo = std::chrono::duration<float>(now - rec.shotAt).count() * 1000.f;
                     if (msAgo < 0.f || msAgo > 350.f) continue;
-                    float angleDiff = AngleDiff(local.Pawn.ViewAngle.y, enemyAngle);
-                    // atis aninda bu dusmanin yonunde (30 derece tolerans) ates edildiyse pre-fire
                     if (rec.angleToClosestEnemy < 30.f)
                     {
                         g_preFires++;

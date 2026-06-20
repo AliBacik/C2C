@@ -93,10 +93,10 @@ void Cheats::Run()
 	// wallhack helper
 	int crosshairEnt = 0;
 	memoryManager.ReadMemory<int>(LocalPawnAddress + Offset.Pawn.iIDEntIndex, crosshairEnt);
-	WallHackHelper::Update(cachedResults, LocalEntity.Controller.TeamID, crosshairEnt);
+	WallHackHelper::Update(entityResults, LocalEntity.Controller.TeamID, crosshairEnt);
 
 	// analytics
-	Analytics::Update(LocalEntity, cachedResults, tbFiredNow);
+	Analytics::Update(LocalEntity, entityResults, tbFiredNow);
 	Analytics::Render();
 
 	// render entities
