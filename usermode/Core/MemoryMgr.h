@@ -12,7 +12,7 @@
 #define IOCTL_GET_MODULE_BASE CTL_CODE(C2C_DEVICE, 0x4454, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
 #define IOCTL_GET_PID CTL_CODE(C2C_DEVICE, 0x4455, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
 #define IOCTL_BATCH_READ CTL_CODE(C2C_DEVICE, 0x4456, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
-//#define IOCTL_WRITE CTL_CODE(C2C_DEVICE, 0x4457, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
+#define IOCTL_MOUSE_CLICK CTL_CODE(C2C_DEVICE, 0x4457, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
 
 class MemoryMgr
 {
@@ -26,6 +26,7 @@ public:
     DWORD GetProcessID(const wchar_t* processName);
     //DWORD64 TraceAddress(DWORD64 baseAddress, std::vector<DWORD> offsets);
     bool BatchReadMemory(const std::vector<std::pair<DWORD64, SIZE_T>>& requests, void* output_buffer);
+    bool MouseClick(bool press);
 
     template <typename ReadType>
     bool ReadMemory(DWORD64 address, ReadType& value, SIZE_T size = sizeof(ReadType))
@@ -112,6 +113,10 @@ private:
         UINT32 num_requests;
         SIZE_T total_buffer_size;
         // Followed by BatchReadRequest array, then output buffer
+    };
+
+    struct MouseClickRequest {
+        BOOLEAN press;
     };
 };
 

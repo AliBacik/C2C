@@ -252,11 +252,10 @@ namespace TriggerBot
 			return;
 
 		std::thread([]() {
-			int pressDuration = RandomJitter(14, 8); // 10-22ms arası random, minimum 10ms
-			mouse_open();
-			mouse_move(MOUSE_PRESS, 0, 0, 0);
+			int pressDuration = RandomJitter(14, 8);
+			mouse_click(true);
 			std::this_thread::sleep_for(std::chrono::milliseconds(pressDuration));
-			mouse_move(MOUSE_RELEASE, 0, 0, 0);
+			mouse_click(false);
 			g_shooting = false;
 		}).detach();
 	}

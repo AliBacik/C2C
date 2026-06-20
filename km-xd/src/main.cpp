@@ -47,6 +47,82 @@ extern "C" {
     NTKERNELAPI PPEB  PsGetProcessPeb(PEPROCESS Process);
 }
 
+// mouclass input injection
+typedef struct _MOUSE_INPUT_DATA {
+    USHORT UnitId;
+    USHORT Flags;
+    union {
+        ULONG Buttons;
+        struct {
+            USHORT ButtonFlags;
+            USHORT ButtonData;
+        };
+    };
+    ULONG RawButtons;
+    LONG  LastX;
+    LONG  LastY;
+    ULONG ExtraInformation;
+} MOUSE_INPUT_DATA, *PMOUSE_INPUT_DATA;
+
+typedef VOID(*MouseClassServiceCallbackFn)(PDEVICE_OBJECT, PMOUSE_INPUT_DATA, PMOUSE_INPUT_DATA, PULONG);
+
+#define MOUSE_LEFT_BUTTON_DOWN   0x0001
+#define MOUSE_LEFT_BUTTON_UP     0x0002
+
+static PDEVICE_OBJECT g_mouseDevice = nullptr;
+static MouseClassServiceCallbackFn g_mouseCallback = nullptr;
+
+static NTSTATUS FindMouseDevice()
+{
+    if (g_mouseDevice && g_mouseCallback)
+        return STATUS_SUCCESS;
+
+    UNICODE_STRING mouseName;
+    RtlInitUnicodeString(&mouseName, L"\\Driver\\mouclass");
+
+    PDRIVER_OBJECT mouseDriver = nullptr;
+    NTSTATUS status = ObReferenceObjectByName(
+        &mouseName, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        nullptr, 0, *IoDriverObjectType, KernelMode, nullptr,
+        reinterpret_cast<PVOID*>(&mouseDriver));
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // mouclass'in ilk device object'ini al
+    PDEVICE_OBJECT dev = mouseDriver->DeviceObject;
+    while (dev)
+    {
+        // ServiceCallback'i bul: mouclass DriverExtension icinde
+        // standart yontem: driver extension'dan callback'i al
+        // Alternatif: IRP_MJ_INTERNAL_DEVICE_CONTROL kullan
+        g_mouseDevice = dev;
+        break;
+    }
+
+    // mouclass ServiceCallback adresini al (export edilmis fonksiyon)
+    UNICODE_STRING cbName;
+    RtlInitUnicodeString(&cbName, L"MouseClassServiceCallback");
+    g_mouseCallback = reinterpret_cast<MouseClassServiceCallbackFn>(
+        MmGetSystemRoutineAddress(&cbName));
+
+    ObDereferenceObject(mouseDriver);
+
+    return (g_mouseDevice && g_mouseCallback) ? STATUS_SUCCESS : STATUS_NOT_FOUND;
+}
+
+static VOID SendMouseClick(BOOLEAN press)
+{
+    if (NT_SUCCESS(FindMouseDevice()) && g_mouseDevice && g_mouseCallback)
+    {
+        MOUSE_INPUT_DATA mid = {};
+        mid.ButtonFlags = press ? MOUSE_LEFT_BUTTON_DOWN : MOUSE_LEFT_BUTTON_UP;
+
+        ULONG consumed = 0;
+        g_mouseCallback(g_mouseDevice, &mid, &mid + 1, &consumed);
+    }
+}
+
 namespace driver
 {
     static PEPROCESS   g_targetProcess{ nullptr };
@@ -255,6 +331,15 @@ namespace driver
             bytesIO = sizeof(BatchReadHeader)
                 + header->num_requests * sizeof(BatchReadRequest)
                 + header->total_buffer_size;
+        }
+
+        else if (code == IOCTL_MOUSE_CLICK)
+        {
+            const auto req = static_cast<MouseClickRequest*>(sysBuf);
+            if (!req) { status = STATUS_INVALID_PARAMETER; goto done; }
+            SendMouseClick(req->press);
+            status = STATUS_SUCCESS;
+            bytesIO = sizeof(MouseClickRequest);
         }
 
     done:

@@ -100,47 +100,41 @@ namespace Render
 	inline ImVec4 Get2DBox(const CEntity& Entity)
 	{
 		const auto& bonePosList = Entity.GetBone().BonePosList;
-		if (bonePosList.empty())
+		if (bonePosList.size() <= BONEINDEX::head)
 			return ImVec4(0, 0, 0, 0);
 
-		float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
-		float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
+		// head ve ayak world pos'larini her frame world-to-screen ile hesapla
+		// BonePosList[x].Pos = world space, bu her zaman guncelleniyor
+		const Vec3& headWorld  = bonePosList[BONEINDEX::head].Pos;
+		const Vec3& ankLWorld  = bonePosList[BONEINDEX::ankle_L].Pos;
+		const Vec3& ankRWorld  = bonePosList[BONEINDEX::ankle_R].Pos;
 
-		bool first = true;
-		Vec2 minPos, maxPos;
+		Vec2 headScreen, ankLScreen, ankRScreen;
+		if (!gGame.View.WorldToScreen(headWorld, headScreen))
+			return ImVec4(0, 0, 0, 0);
 
-		for (const auto& boneJoint : bonePosList)
+		// ayak noktalarini dene, ikisi de fail ederse head'i kullan
+		bool hasAnkL = gGame.View.WorldToScreen(ankLWorld, ankLScreen);
+		bool hasAnkR = gGame.View.WorldToScreen(ankRWorld, ankRScreen);
+
+		float feetY = headScreen.y; // fallback
+		float centerX = headScreen.x;
+		if (hasAnkL && hasAnkR)
 		{
-			const Vec2& sp = boneJoint.ScreenPos;
-			if (sp.x <= 0.f || sp.y <= 0.f || sp.x >= screenW || sp.y >= screenH)
-				continue;
-			if (first) {
-				minPos = maxPos = sp;
-				first = false;
-			} else {
-				minPos.x = std::min(sp.x, minPos.x);
-				minPos.y = std::min(sp.y, minPos.y);
-				maxPos.x = std::max(sp.x, maxPos.x);
-				maxPos.y = std::max(sp.y, maxPos.y);
-			}
+			feetY   = std::max(ankLScreen.y, ankRScreen.y);
+			centerX = (ankLScreen.x + ankRScreen.x) * 0.5f;
 		}
-		if (first) return ImVec4(0, 0, 0, 0);
+		else if (hasAnkL) { feetY = ankLScreen.y; centerX = ankLScreen.x; }
+		else if (hasAnkR) { feetY = ankRScreen.y; centerX = ankRScreen.x; }
 
-		BoneJointPos headBone = Entity.GetBone().BonePosList[BONEINDEX::head];
-		const float diffY = maxPos.y - headBone.ScreenPos.y;
-		const float height = diffY * 1.09f;
-		const float width = height * 0.6f;
+		float height = (feetY - headScreen.y) * 1.06f;
+		if (height < 10.f) return ImVec4(0, 0, 0, 0);
 
-		const float posX = headBone.ScreenPos.x - width * 0.5f;
-		const float posY = headBone.ScreenPos.y - height * 0.08f;
+		float width  = height * 0.55f;
+		float x      = centerX - width * 0.5f;
+		float y      = headScreen.y - height * 0.05f;
 
-		minPos.x = std::min(minPos.x, posX);
-		minPos.y = std::min(minPos.y, posY);
-		maxPos.x = std::max(maxPos.x, posX + width);
-		maxPos.y = std::max(maxPos.y, posY + height);
-
-		const Vec2 size{ maxPos.x - minPos.x, maxPos.y - minPos.y };
-		return ImVec4(minPos.x, minPos.y, size.x, size.y);
+		return ImVec4(x, y, width, height);
 	}
 
 	inline void DrawBone(const CEntity& Entity, ImColor Color, float Thickness)
@@ -149,7 +143,7 @@ namespace Render
 			return;
 
 		const auto& bonePosList = Entity.GetBone().BonePosList;
-		if (bonePosList.size() < 28)
+		if (bonePosList.size() < 22)
 			return;
 
 		BoneJointPos previous, current;
@@ -222,37 +216,8 @@ namespace Render
 
 	inline ImVec4 Get2DBoneRect(const CEntity& Entity)
 	{
-		const auto& bonePosList = Entity.GetBone().BonePosList;
-		if (bonePosList.empty())
-			return ImVec4(0, 0, 0, 0);
-
-		float screenW = (float)GetSystemMetrics(SM_CXSCREEN);
-		float screenH = (float)GetSystemMetrics(SM_CYSCREEN);
-
-		bool first = true;
-		Vec2 minPos, maxPos;
-
-		for (const auto& boneJoint : bonePosList)
-		{
-			const Vec2& sp = boneJoint.ScreenPos;
-			// skip invalid / off-screen positions
-			if (sp.x <= 0.f || sp.y <= 0.f || sp.x >= screenW || sp.y >= screenH)
-				continue;
-			if (first) {
-				minPos = maxPos = sp;
-				first = false;
-			} else {
-				minPos.x = std::min(sp.x, minPos.x);
-				minPos.y = std::min(sp.y, minPos.y);
-				maxPos.x = std::max(sp.x, maxPos.x);
-				maxPos.y = std::max(sp.y, maxPos.y);
-			}
-		}
-
-		if (first) return ImVec4(0, 0, 0, 0);
-
-		const Vec2 size{ maxPos.x - minPos.x, maxPos.y - minPos.y };
-		return ImVec4(minPos.x, minPos.y, size.x, size.y);
+		// Get2DBox ile ayni world-to-screen tabanli hesaplama
+		return Get2DBox(Entity);
 	}
 
 

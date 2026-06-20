@@ -43,6 +43,7 @@ typedef struct _PEB {
 #define IOCTL_GET_MODULE_BASE CTL_CODE(C2C_DEVICE_TYPE, 0x4454, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
 #define IOCTL_GET_PID         CTL_CODE(C2C_DEVICE_TYPE, 0x4455, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
 #define IOCTL_BATCH_READ      CTL_CODE(C2C_DEVICE_TYPE, 0x4456, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
+#define IOCTL_MOUSE_CLICK     CTL_CODE(C2C_DEVICE_TYPE, 0x4457, METHOD_BUFFERED, FILE_SPECIAL_ACCESS)
 
 // IOCTL_READ - MemoryMgr.h _Request ile ayni
 struct Request
@@ -75,6 +76,12 @@ struct BatchReadRequest
     UINT64 address;
     SIZE_T size;
     SIZE_T offset_in_buffer;
+};
+
+// IOCTL_MOUSE_CLICK
+struct MouseClickRequest
+{
+    BOOLEAN press;   // TRUE = button down, FALSE = button up
 };
 
 struct BatchReadHeader
