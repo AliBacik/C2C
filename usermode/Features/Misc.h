@@ -240,12 +240,15 @@ namespace TriggerBot
 		return local.Pawn.WeaponName;
 	}
 
-	static inline float RandomJitterF(float base, float range)
+	static inline float RandomJitterF(float base, float stddev)
 	{
 		static std::random_device rd;
 		static std::mt19937 rng(rd());
-		std::uniform_real_distribution<float> dist(-range, range);
-		return (std::max)(0.f, base + dist(rng));
+		std::normal_distribution<float> dist(base, stddev);
+		// minimum 10ms garantile, cok yuksek outlier'lari da kes
+		float val = dist(rng);
+		float minVal = base * 0.9f;
+		return std::clamp(val, minVal, base + stddev * 3.f);
 	}
 
 	static inline void DoShoot(float delayMs)
@@ -268,7 +271,7 @@ namespace TriggerBot
 			};
 			sleepUs(delayMs);
 			mouse_move(MOUSE_PRESS, 0, 0, 0);
-			sleepUs(RandomJitterF(12.f, 5.f));
+			sleepUs(RandomJitterF(12.f, 8.f));
 			mouse_move(MOUSE_RELEASE, 0, 0, 0);
 			g_shooting = false;
 		}).detach();
@@ -279,7 +282,7 @@ namespace TriggerBot
 		if (!TriggerBotCFG::Enabled)
 			return;
 
-		if (!(GetAsyncKeyState(TriggerBotCFG::HotKey) & 0x8000))
+		if (!TriggerBotCFG::AlwaysActive && !(GetAsyncKeyState(TriggerBotCFG::HotKey) & 0x8000))
 			return;
 
 		if (!localEntity.IsAlive())
@@ -313,7 +316,7 @@ namespace TriggerBot
 
 			if ((result.entityIndex + 1) == crosshairEntIndex)
 			{
-				float jitteredDelay = RandomJitterF((float)TriggerBotCFG::Delay, 7.f);
+				float jitteredDelay = RandomJitterF((float)TriggerBotCFG::Delay, 20.f);
 				DoShoot(jitteredDelay);
 				break;
 			}

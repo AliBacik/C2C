@@ -121,6 +121,7 @@ namespace MiscCFG
 namespace TriggerBotCFG
 {
 	inline bool Enabled = false;
+	inline bool AlwaysActive = false;
 	inline int Delay = 100; // ms
 	inline int HotKey = VK_LBUTTON; // Left Click
 }
