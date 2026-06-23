@@ -227,12 +227,7 @@ namespace TriggerBot
 
 	static inline bool CheckScopeWeapon(const std::string& weapon)
 	{
-		static const std::vector<std::string> scopeWeapons = {
-			"weapon_awp", "weapon_ssg08", "weapon_scar20", "weapon_g3sg1"
-		};
-		for (const auto& w : scopeWeapons)
-			if (weapon == w) return true;
-		return false;
+		return weapon == "awp" || weapon == "ssg08" || weapon == "scar20" || weapon == "g3Sg1";
 	}
 
 	static inline std::string GetWeapon(const CEntity& local)

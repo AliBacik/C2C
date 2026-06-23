@@ -417,31 +417,4 @@ namespace Render
 		return ImVec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
 	}
 
-	inline void DrawCrossHair(ImDrawList* drawList, ImVec2 center, ImColor color)
-	{
-		const float len   = 10.f;
-		const float gap   = 3.f;
-		const float thick = 1.5f;
-
-		// yatay sol
-		drawList->AddLine(ImVec2(center.x - len - gap, center.y), ImVec2(center.x - gap, center.y), color, thick);
-		// yatay sag
-		drawList->AddLine(ImVec2(center.x + gap, center.y), ImVec2(center.x + len + gap, center.y), color, thick);
-		// dikey yukari
-		drawList->AddLine(ImVec2(center.x, center.y - len - gap), ImVec2(center.x, center.y - gap), color, thick);
-		// dikey asagi
-		drawList->AddLine(ImVec2(center.x, center.y + gap), ImVec2(center.x, center.y + len + gap), color, thick);
-
-		// outline
-		ImColor outline(0, 0, 0, (int)(color.Value.w * 255) / 2);
-		drawList->AddLine(ImVec2(center.x - len - gap - 1, center.y), ImVec2(center.x - gap + 1, center.y), outline, thick + 2.f);
-		drawList->AddLine(ImVec2(center.x + gap - 1, center.y), ImVec2(center.x + len + gap + 1, center.y), outline, thick + 2.f);
-		drawList->AddLine(ImVec2(center.x, center.y - len - gap - 1), ImVec2(center.x, center.y - gap + 1), outline, thick + 2.f);
-		drawList->AddLine(ImVec2(center.x, center.y + gap - 1), ImVec2(center.x, center.y + len + gap + 1), outline, thick + 2.f);
-		// on plan
-		drawList->AddLine(ImVec2(center.x - len - gap, center.y), ImVec2(center.x - gap, center.y), color, thick);
-		drawList->AddLine(ImVec2(center.x + gap, center.y), ImVec2(center.x + len + gap, center.y), color, thick);
-		drawList->AddLine(ImVec2(center.x, center.y - len - gap), ImVec2(center.x, center.y - gap), color, thick);
-		drawList->AddLine(ImVec2(center.x, center.y + gap), ImVec2(center.x, center.y + len + gap), color, thick);
-	}
 }
