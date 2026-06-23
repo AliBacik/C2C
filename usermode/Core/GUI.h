@@ -190,6 +190,7 @@ namespace GUI
 						PutSwitch(Text::ESP::HeadBox.c_str(), 10.f, ImGui::GetFrameHeight() * 1.7, &ESPConfig::ShowHeadBox, true, "###HeadBoxCol", reinterpret_cast<float*>(&ESPConfig::HeadBoxColor));
 						PutSwitch("Health Bar", 10.f, ImGui::GetFrameHeight() * 1.7, &ESPConfig::ShowHealthBar);
 						PutSwitch("View Direction", 10.f, ImGui::GetFrameHeight() * 1.7, &ESPConfig::ShowEyeRay);
+						PutSwitch("Offscreen Arrow", 10.f, ImGui::GetFrameHeight() * 1.7, &ESPConfig::ShowOutOfFOVArrow, true, "###ArrowCol", reinterpret_cast<float*>(&ESPConfig::OutOfFOVArrowColor));
 					}
 
 					// Sag: Preview + Radar
@@ -265,6 +266,8 @@ namespace GUI
 						}
 
 						PutSwitch("Behavior Meter", 5.f, ImGui::GetFrameHeight() * 1.7, &AnalyticsCFG::Enabled);
+						PutSwitch("Bomb Timer", 5.f, ImGui::GetFrameHeight() * 1.7, &MiscCFG::bmbTimer);
+						PutSwitch("Sniper Crosshair", 5.f, ImGui::GetFrameHeight() * 1.7, &MiscCFG::SniperCrosshair, true, "###SniperCol", reinterpret_cast<float*>(&MiscCFG::SniperCrosshairColor));
 						PutSwitch("Spectator Mode", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::WorkInSpec);
 						PutSwitch("Team Check", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::TeamCheck);
 						PutSwitch("Anti-Record (OBS)", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::BypassOBS);

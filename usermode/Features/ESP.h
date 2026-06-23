@@ -78,7 +78,34 @@ namespace ESP
 		}
 	}
 
-	void RenderOutOfFOVArrow(const CEntity& LocalEntity, const CEntity& Entity) {}
+	void RenderOutOfFOVArrow(const CEntity& LocalEntity, const CEntity& Entity)
+	{
+		if (!ESPConfig::ShowOutOfFOVArrow) return;
+		if (!Entity.IsAlive()) return;
+		if (Entity.IsInScreen()) return;
+
+		auto* drawList = ImGui::GetBackgroundDrawList();
+		const ImVec2& io = ImGui::GetIO().DisplaySize;
+		ImVec2 center(io.x * 0.5f, io.y * 0.5f);
+		float radius = (std::min)(io.x, io.y) * ESPConfig::OutOfFOVRadiusFactor;
+
+		// local player yaw'a gore dusman acisi
+		float localYaw = LocalEntity.Pawn.ViewAngle.y * (3.14159265f / 180.f);
+		Vec3 delta = Entity.Pawn.Pos - LocalEntity.Pawn.Pos;
+		float angle = atan2f(delta.y, delta.x) - localYaw - (3.14159265f / 2.f);
+
+		ImVec2 arrowPos(center.x + cosf(angle) * radius, center.y + sinf(angle) * radius);
+
+		// ok ucgeni
+		const float arrowSize = 8.f;
+		ImVec2 dir(cosf(angle), sinf(angle));
+		ImVec2 perp(-dir.y * arrowSize * 0.5f, dir.x * arrowSize * 0.5f);
+		ImVec2 tip(arrowPos.x + dir.x * arrowSize, arrowPos.y + dir.y * arrowSize);
+		ImVec2 base1(arrowPos.x - dir.x * arrowSize + perp.x, arrowPos.y - dir.y * arrowSize + perp.y);
+		ImVec2 base2(arrowPos.x - dir.x * arrowSize - perp.x, arrowPos.y - dir.y * arrowSize - perp.y);
+
+		drawList->AddTriangleFilled(tip, base1, base2, ESPConfig::OutOfFOVArrowColor);
+	}
 
 	inline ImVec4 GetBoxRect(const CEntity& Entity, int boxType)
 	{

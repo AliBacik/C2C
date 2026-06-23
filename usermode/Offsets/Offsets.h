@@ -120,6 +120,8 @@ public:
 	{
 		DWORD m_bBeingDefused;
 		DWORD m_flDefuseCountDown;
+		DWORD m_flC4Blow;
+		DWORD m_flTimerLength;
 		DWORD m_nBombSite;
 	} C4;
 

@@ -23,6 +23,7 @@
 #include "../Features/Misc.h"
 #include "../Features/Analytics.h"
 #include "../Features/WallHackHelper.h"
+#include "../Features/BombTimer.h"
 #include "../Core/GUI.h"
 #include "../Helpers/Logger.h"
 
@@ -103,6 +104,10 @@ void Cheats::Run()
 	HandleEnts(entityResults, LocalEntity, LocalPlayerControllerIndex, GameRadar);
 
 	Radar(GameRadar, LocalEntity);
+
+	// sniper crosshair + bomb timer
+	RenderCrosshair(ImGui::GetBackgroundDrawList(), LocalEntity);
+	BombTimer::Render();
 
 	int currentFPS = static_cast<int>(ImGui::GetIO().Framerate);
 	if (currentFPS > MenuConfig::RenderFPS)

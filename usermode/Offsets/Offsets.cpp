@@ -110,6 +110,8 @@ void Offsets::SetOffsets(const std::string& offsetsData, const std::string& butt
 
         this->C4.m_bBeingDefused = get_class_field("C_PlantedC4", "m_bBeingDefused");
         this->C4.m_flDefuseCountDown = get_class_field("C_PlantedC4", "m_flDefuseCountDown");
+        this->C4.m_flC4Blow = get_class_field("C_PlantedC4", "m_flC4Blow");
+        this->C4.m_flTimerLength = get_class_field("C_PlantedC4", "m_flTimerLength");
         this->C4.m_nBombSite = get_class_field("C_PlantedC4", "m_nBombSite");
     }
     catch (const std::exception& e) {
