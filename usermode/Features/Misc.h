@@ -23,6 +23,7 @@
 #include "..\OS-ImGui\imgui\imgui.h"
 #include "..\Core\GlobalVars.h"
 #include "..\Helpers\Mouse.h"
+#include "..\Core\Cheats.h"
 
 #pragma comment(lib, "winmm.lib")
 
@@ -263,14 +264,14 @@ namespace TriggerBot
 
 		std::thread([delayMs]() {
 			std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
-			mouse_click(true);
+			mouse_move(MOUSE_PRESS, 0, 0, 0);
 			std::this_thread::sleep_for(std::chrono::milliseconds(RandomJitter(12, 6)));
-			mouse_click(false);
+			mouse_move(MOUSE_RELEASE, 0, 0, 0);
 			g_shooting = false;
 		}).detach();
 	}
 
-	static inline void Update(const CEntity& localEntity, const std::vector<std::pair<int, CEntity>>& entities)
+	static inline void Update(const CEntity& localEntity, const std::vector<EntityResult>& entities, int crosshairEntIndex)
 	{
 		if (!TriggerBotCFG::Enabled)
 			return;
@@ -279,6 +280,9 @@ namespace TriggerBot
 			return;
 
 		if (!localEntity.IsAlive())
+			return;
+
+		if (crosshairEntIndex <= 0)
 			return;
 
 		// atesler arasi minimum süre (spam önleme)
@@ -296,22 +300,15 @@ namespace TriggerBot
 				return;
 		}
 
-		int crosshairEntIndex = 0;
-		if (!memoryManager.ReadMemory<int>(localEntity.Pawn.Address + Offset.Pawn.iIDEntIndex, crosshairEntIndex))
-			return;
-
-		if (crosshairEntIndex <= 0)
-			return;
-
-		for (const auto& [idx, entity] : entities)
+		for (const auto& result : entities)
 		{
-			if (!entity.IsAlive())
+			if (!result.isValid) continue;
+			if (!result.entity.IsAlive()) continue;
+
+			if (MenuConfig::TeamCheck && result.entity.Controller.TeamID == localEntity.Controller.TeamID)
 				continue;
 
-			if (MenuConfig::TeamCheck && entity.Controller.TeamID == localEntity.Controller.TeamID)
-				continue;
-
-			if ((idx + 1) == crosshairEntIndex)
+			if ((result.entityIndex + 1) == crosshairEntIndex)
 			{
 				int jitteredDelay = RandomJitter(TriggerBotCFG::Delay, 15);
 				DoShoot(jitteredDelay);

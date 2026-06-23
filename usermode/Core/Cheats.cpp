@@ -85,15 +85,15 @@ void Cheats::Run()
 	// process entities
 	auto entityResults = ProcessEntities(LocalEntity, LocalPlayerControllerIndex);
 
-	// triggerbot
-	bool tbFired = TriggerBot::g_shooting.load();
-	TriggerBot::Update(LocalEntity, cachedResults);
-	bool tbFiredNow = !tbFired && TriggerBot::g_shooting.load();
-
-	// wallhack helper
+	// wallhack helper + crosshair ent
 	int crosshairEnt = 0;
 	memoryManager.ReadMemory<int>(LocalPawnAddress + Offset.Pawn.iIDEntIndex, crosshairEnt);
 	WallHackHelper::Update(entityResults, LocalEntity.Controller.TeamID, crosshairEnt);
+
+	// triggerbot
+	bool tbFired = TriggerBot::g_shooting.load();
+	TriggerBot::Update(LocalEntity, entityResults, crosshairEnt);
+	bool tbFiredNow = !tbFired && TriggerBot::g_shooting.load();
 
 	// analytics
 	Analytics::Update(LocalEntity, entityResults, tbFiredNow);
