@@ -122,7 +122,7 @@ namespace TriggerBotCFG
 {
 	inline bool Enabled = false;
 	inline int Delay = 100; // ms
-	inline int HotKey = VK_MENU; // Alt
+	inline int HotKey = VK_LBUTTON; // Left Click
 }
 
 namespace AnalyticsCFG

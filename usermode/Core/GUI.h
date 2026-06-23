@@ -235,8 +235,18 @@ namespace GUI
 						{
 							static const int DelayMin = 10, DelayMax = 500;
 							PutSliderInt("Delay (ms)", 5.f, &TriggerBotCFG::Delay, &DelayMin, &DelayMax, "%d ms");
+
+							static std::string tbKeyName = KeyMgr::GetKeyName(TriggerBotCFG::HotKey);
 							ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 5.f);
-							ImGui::TextDisabled("Hotkey: ALT (hold)");
+							ImGui::TextDisabled("Hotkey: %s", tbKeyName.c_str());
+							ImGui::SameLine();
+							ImGui::SetCursorPosX(leftW - 75.f);
+							if (ImGui::Button("Set##tb", { 70.f, 25.f }))
+							{
+								std::thread([&]() {
+									KeyMgr::GetPressedKey(TriggerBotCFG::HotKey, &tbKeyName);
+								}).detach();
+							}
 						}
 
 						ImGui::NewLine();
@@ -261,7 +271,7 @@ namespace GUI
 
 						ImGui::NewLine();
 						ImGui::GradientText("WH Helper");
-						PutSwitch("Enable##wh", 5.f, ImGui::GetFrameHeight() * 1.7, &WallHackHelperCFG::Enabled);
+						PutSwitch("Enable", 5.f, ImGui::GetFrameHeight() * 1.7, &WallHackHelperCFG::Enabled);
 						if (WallHackHelperCFG::Enabled)
 						{
 							static const int SafeMin = 50, SafeMax = 800;

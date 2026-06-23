@@ -240,21 +240,21 @@ namespace TriggerBot
 		return local.Pawn.WeaponName;
 	}
 
-	static inline int RandomJitter(int base, int range)
+	static inline float RandomJitterF(float base, float range)
 	{
 		static std::random_device rd;
 		static std::mt19937 rng(rd());
-		std::uniform_int_distribution<int> dist(-range, range);
-		return (std::max)(0, base + dist(rng));
+		std::uniform_real_distribution<float> dist(-range, range);
+		return (std::max)(0.f, base + dist(rng));
 	}
 
-	static inline void DoShoot(int delayMs)
+	static inline void DoShoot(float delayMs)
 	{
 		if (g_shooting.exchange(true))
 			return;
 
-		// sol tus zaten basılıysa ates etme
-		if (GetAsyncKeyState(VK_LBUTTON) & 0x8000)
+		// hotkey sol click degilse ve sol click zaten basılıysa overlap etme
+		if (TriggerBotCFG::HotKey != VK_LBUTTON && (GetAsyncKeyState(VK_LBUTTON) & 0x8000))
 		{
 			g_shooting = false;
 			return;
@@ -263,9 +263,12 @@ namespace TriggerBot
 		g_lastShotTime = std::chrono::steady_clock::now();
 
 		std::thread([delayMs]() {
-			std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+			auto sleepUs = [](float ms) {
+				std::this_thread::sleep_for(std::chrono::microseconds((long long)(ms * 1000.f)));
+			};
+			sleepUs(delayMs);
 			mouse_move(MOUSE_PRESS, 0, 0, 0);
-			std::this_thread::sleep_for(std::chrono::milliseconds(RandomJitter(12, 6)));
+			sleepUs(RandomJitterF(12.f, 5.f));
 			mouse_move(MOUSE_RELEASE, 0, 0, 0);
 			g_shooting = false;
 		}).detach();
@@ -310,7 +313,7 @@ namespace TriggerBot
 
 			if ((result.entityIndex + 1) == crosshairEntIndex)
 			{
-				int jitteredDelay = RandomJitter(TriggerBotCFG::Delay, 15);
+				float jitteredDelay = RandomJitterF((float)TriggerBotCFG::Delay, 7.f);
 				DoShoot(jitteredDelay);
 				break;
 			}
