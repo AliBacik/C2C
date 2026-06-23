@@ -30,6 +30,7 @@
 void Menu();
 void Radar(Base_Radar, const CEntity&);
 void RadarSetting(Base_Radar&);
+void RenderCrosshair(ImDrawList* drawList, const CEntity& LocalEntity);
 
 void Cheats::Run()
 {

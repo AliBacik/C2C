@@ -185,7 +185,7 @@ public:
 	bool UpdatePawn(const DWORD64& PlayerPawnAddress);
 	bool UpdateClientData();
 	bool IsAlive() const;
-	bool IsInScreen();
+	bool IsInScreen() const;
 	CBone GetBone() const;
 
 	static DWORD64 ResolveEntityHandle(uint32_t handle);

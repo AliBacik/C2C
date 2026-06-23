@@ -20,13 +20,13 @@ typedef struct _MOUSE_INPUT_DATA {
     ULONG ExtraInformation;
 } MOUSE_INPUT_DATA, * PMOUSE_INPUT_DATA;
 
-typedef NTSTATUS(NTAPI* pNtDeviceIoControlFile)(
+typedef NTSTATUS(NTAPI* pNtDeviceIoControlFile_t)(
     HANDLE FileHandle, HANDLE Event, PVOID ApcRoutine, PVOID ApcContext,
     PIO_STATUS_BLOCK IoStatusBlock, ULONG IoControlCode,
     PVOID InputBuffer, ULONG InputBufferLength,
     PVOID OutputBuffer, ULONG OutputBufferLength);
 
-static pNtDeviceIoControlFile NtDeviceIoControlFile = nullptr;
+static pNtDeviceIoControlFile_t g_NtDeviceIoControlFile = nullptr;
 static HANDLE g_mouseHandle = INVALID_HANDLE_VALUE;
 static bool g_useHID = false;
 
@@ -43,15 +43,13 @@ bool mouse_open()
     if (g_mouseHandle != INVALID_HANDLE_VALUE)
         return g_useHID;
 
-    // NtDeviceIoControlFile yukle
-    if (!NtDeviceIoControlFile)
+    if (!g_NtDeviceIoControlFile)
     {
         HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
         if (ntdll)
-            NtDeviceIoControlFile = (pNtDeviceIoControlFile)GetProcAddress(ntdll, "NtDeviceIoControlFile");
+            g_NtDeviceIoControlFile = (pNtDeviceIoControlFile_t)GetProcAddress(ntdll, "NtDeviceIoControlFile");
     }
 
-    // HID mouse device yollarini dene
     const wchar_t* paths[] = {
         L"\\\\?\\ROOT#SYSTEM#0002#{1abc05c0-c378-41b9-9cef-df1aba82b015}",
         L"\\\\?\\ROOT#SYSTEM#0001#{1abc05c0-c378-41b9-9cef-df1aba82b015}",
@@ -69,31 +67,24 @@ bool mouse_open()
         }
     }
 
-    // HID bulunamadi, SendInput kullan
     g_useHID = false;
     return false;
 }
 
 void mouse_move(int button, int x, int y, int wheel)
 {
-    if (g_useHID && g_mouseHandle != INVALID_HANDLE_VALUE && NtDeviceIoControlFile)
+    if (g_useHID && g_mouseHandle != INVALID_HANDLE_VALUE && g_NtDeviceIoControlFile)
     {
         MOUSE_INPUT_DATA mid = {};
         mid.LastX = x;
         mid.LastY = y;
 
         if (button == MOUSE_PRESS)
-        {
-            mid.ButtonFlags = 0x0001; // left down
-        }
+            mid.ButtonFlags = 0x0001;
         else if (button == MOUSE_RELEASE)
-        {
-            mid.ButtonFlags = 0x0002; // left up
-        }
+            mid.ButtonFlags = 0x0002;
         else if (x != 0 || y != 0)
-        {
-            mid.Flags = 0x0001; // relative move
-        }
+            mid.Flags = 0x0001;
 
         if (wheel != 0)
         {
@@ -102,12 +93,11 @@ void mouse_move(int button, int x, int y, int wheel)
         }
 
         IO_STATUS_BLOCK isb = {};
-        NtDeviceIoControlFile(g_mouseHandle, nullptr, nullptr, nullptr,
+        g_NtDeviceIoControlFile(g_mouseHandle, nullptr, nullptr, nullptr,
             &isb, IOCTL_MOUSE, &mid, sizeof(mid), nullptr, 0);
     }
     else
     {
-        // fallback: SendInput
         INPUT input = {};
         input.type = INPUT_MOUSE;
 
@@ -130,4 +120,9 @@ void mouse_move(int button, int x, int y, int wheel)
 
         SendInput(1, &input, sizeof(INPUT));
     }
+}
+
+void mouse_click(bool press)
+{
+    mouse_event(press ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
 }
