@@ -277,17 +277,6 @@ namespace GUI
 						PutSwitch("Anti-Record (OBS)", 5.f, ImGui::GetFrameHeight() * 1.7, &MenuConfig::BypassOBS);
 
 						ImGui::NewLine();
-						ImGui::GradientText("WH Helper");
-						PutSwitch("Enable", 5.f, ImGui::GetFrameHeight() * 1.7, &WallHackHelperCFG::Enabled);
-						if (WallHackHelperCFG::Enabled)
-						{
-							static const int SafeMin = 50, SafeMax = 800;
-							static const int PreAimMin = 50, PreAimMax = 300;
-							PutSliderInt("Cold Peek (ms)", 5.f, &WallHackHelperCFG::SafeDelayMs, &SafeMin, &SafeMax, "%d ms");
-							PutSliderInt("Pre-Aim (ms)", 5.f, &WallHackHelperCFG::PreAimDelayMs, &PreAimMin, &PreAimMax, "%d ms");
-						}
-
-						ImGui::NewLine();
 						ImGui::Separator();
 						ImGui::NewLine();
 

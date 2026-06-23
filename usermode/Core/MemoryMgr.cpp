@@ -155,6 +155,21 @@ DWORD64 MemoryMgr::TraceAddress(DWORD64 baseAddress, std::vector<DWORD> offsets)
 }
 */
 
+bool MemoryMgr::MouseClick(bool press)
+{
+    if (kernelDriver == nullptr)
+        return false;
+
+    struct MouseClickRequest { BOOLEAN press; };
+    MouseClickRequest req{ press ? TRUE : FALSE };
+
+    return DeviceIoControl(kernelDriver,
+        IOCTL_MOUSE_CLICK,
+        &req, sizeof(req),
+        &req, sizeof(req),
+        nullptr, nullptr) == TRUE;
+}
+
 bool MemoryMgr::BatchReadMemory(const std::vector<std::pair<DWORD64, SIZE_T>>& requests, void* output_buffer) {
     if (kernelDriver == nullptr || ProcessID == 0 || requests.empty()) {
         return false;

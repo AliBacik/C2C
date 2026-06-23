@@ -22,7 +22,6 @@
 #include "../Features/ESP.h"
 #include "../Features/Misc.h"
 #include "../Features/Analytics.h"
-#include "../Features/WallHackHelper.h"
 #include "../Features/BombTimer.h"
 #include "../Core/GUI.h"
 #include "../Helpers/Logger.h"
@@ -87,10 +86,9 @@ void Cheats::Run()
 	// process entities
 	auto entityResults = ProcessEntities(LocalEntity, LocalPlayerControllerIndex);
 
-	// wallhack helper + crosshair ent
+	// crosshair ent
 	int crosshairEnt = 0;
 	memoryManager.ReadMemory<int>(LocalPawnAddress + Offset.Pawn.iIDEntIndex, crosshairEnt);
-	WallHackHelper::Update(entityResults, LocalEntity.Controller.TeamID, crosshairEnt);
 
 	// triggerbot
 	bool tbFired = TriggerBot::g_shooting.load();
@@ -198,7 +196,6 @@ std::vector<EntityResult> Cheats::ProcessEntities(CEntity& localEntity, int& loc
 		if (MenuConfig::TeamCheck && entity.Controller.TeamID == localEntity.Controller.TeamID)
 			continue;
 
-		// check if in screen
 		result.isInScreen = entity.IsInScreen();
 
 		// calculate distance

@@ -1,7 +1,6 @@
 #pragma once
 #include "..\Core\Render.h"
 #include "..\Core\Config.h"
-#include "WallHackHelper.h"
 
 namespace ESP
 {
@@ -10,28 +9,8 @@ namespace ESP
 		if (Entity.Pawn.Pos == Vec3(0, 0, 0))
 			return;
 
-		ImColor boneColor = WallHackHelperCFG::Enabled
-			? WallHackHelper::GetBoneColor(Entity.Controller.Address)
-			: ESPConfig::BoneColor;
-		ImColor headColor = WallHackHelperCFG::Enabled
-			? WallHackHelper::GetHeadColor(Entity.Controller.Address)
-			: ESPConfig::HeadBoxColor;
-
-		Render::DrawBone(Entity, boneColor, 1.3f);
-		Render::DrawHeadCircle(Entity, headColor);
-
-		// kac ms kaldi goster
-		if (WallHackHelperCFG::Enabled)
-		{
-			float remaining = WallHackHelper::GetRemainingMs(Entity.Controller.Address);
-			if (remaining > 0.f)
-			{
-				char timeText[16];
-				snprintf(timeText, sizeof(timeText), "%.0fms", remaining);
-				ImVec2 textPos = ImVec2(Rect.x + Rect.z * 0.5f - 12.f, Rect.y - 16.f);
-				ImGui::GetBackgroundDrawList()->AddText(textPos, ImColor(255, 255, 255, 200), timeText);
-			}
-		}
+		Render::DrawBone(Entity, ESPConfig::BoneColor, 1.3f);
+		Render::DrawHeadCircle(Entity, ESPConfig::HeadBoxColor);
 	}
 
 	void RenderPreview(ImVec2 windowSize)

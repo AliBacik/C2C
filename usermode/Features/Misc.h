@@ -270,9 +270,9 @@ namespace TriggerBot
 				std::this_thread::sleep_for(std::chrono::microseconds((long long)(ms * 1000.f)));
 			};
 			sleepUs(delayMs);
-			mouse_move(MOUSE_PRESS, 0, 0, 0);
+			mouse_click(true);
 			sleepUs(RandomJitterF(12.f, 8.f));
-			mouse_move(MOUSE_RELEASE, 0, 0, 0);
+			mouse_click(false);
 			g_shooting = false;
 		}).detach();
 	}
