@@ -105,8 +105,8 @@ namespace RadarCFG
 namespace MiscCFG
 {
 	inline bool WaterMark = true;
-	inline bool SniperCrosshair = false;
-	inline ImColor SniperCrosshairColor = ImColor(255, 255, 255, 200);
+	inline bool SniperCrosshair = true;
+	inline ImColor SniperCrosshairColor = ImColor(32, 178, 170, 255);
 	inline bool SpecList = false;
 	inline bool bmbTimer = true;
 	inline bool FastStop = false;

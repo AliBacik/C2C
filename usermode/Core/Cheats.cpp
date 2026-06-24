@@ -23,6 +23,7 @@
 #include "../Features/Misc.h"
 #include "../Features/Analytics.h"
 #include "../Features/BombTimer.h"
+#include "../Features/SpectatorList.h"
 #include "../Core/GUI.h"
 #include "../Helpers/Logger.h"
 
@@ -104,15 +105,24 @@ void Cheats::Run()
 
 	Radar(GameRadar, LocalEntity);
 
-	// sniper crosshair + bomb timer
 	RenderCrosshair(ImGui::GetBackgroundDrawList(), LocalEntity);
-	BombTimer::Render();
+	SpecList::SpectatorWindowList(LocalEntity);
+	bmb::RenderWindow(LocalEntity.Controller.TeamID);
 
 	int currentFPS = static_cast<int>(ImGui::GetIO().Framerate);
 	if (currentFPS > MenuConfig::RenderFPS)
 	{
 		int FrameWait = round(1000.0f / MenuConfig::RenderFPS);
 		std::this_thread::sleep_for(std::chrono::milliseconds(FrameWait));
+	}
+
+	if (m_currentTick != m_previousTick)
+	{
+		std::vector<CEntity> allEntities;
+		for (const auto& pair : cachedResults)
+			allEntities.push_back(pair.second);
+		SpecList::GetSpectatorList(allEntities, LocalEntity);
+		m_previousTick = m_currentTick;
 	}
 }
 
