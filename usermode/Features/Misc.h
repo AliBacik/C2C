@@ -329,6 +329,43 @@ namespace TriggerBot
 
 			if ((result.entityIndex + 1) == crosshairEntIndex)
 			{
+				if (TriggerBotCFG::HeadOnly)
+				{
+					// head bone mevcutsa FOV kontrolu yap — deadlocked gibi
+					// BonePosList[head=7] world position, mesafeye gore dinamik radius
+					const auto& bones = result.entity.Pawn.BoneData.BonePosList;
+					if (bones.size() <= BONEINDEX::head)
+						break;
+
+					const Vec3& headPos = bones[BONEINDEX::head].Pos;
+					const Vec3& localPos = localEntity.Pawn.Pos;
+					const Vec2& viewAngle = localEntity.Pawn.ViewAngle; // pitch, yaw
+
+					// local -> head vektoru
+					Vec3 delta = headPos - localPos;
+					float dist = delta.Length();
+					if (dist < 1.f) break;
+
+					// head'e pitch/yaw acisi
+					float targetPitch = -asinf(delta.z / dist) * (180.f / (float)M_PI);
+					float targetYaw   = atan2f(delta.y, delta.x) * (180.f / (float)M_PI);
+
+					// acifark (normalize -180..180)
+					auto normAngle = [](float a) -> float {
+						while (a > 180.f)  a -= 360.f;
+						while (a < -180.f) a += 360.f;
+						return a;
+					};
+					float dPitch = normAngle(targetPitch - viewAngle.x);
+					float dYaw   = normAngle(targetYaw   - viewAngle.y);
+					float fov    = sqrtf(dPitch * dPitch + dYaw * dYaw);
+
+					// head radius fov: deadlocked ile ayni formul (3.5 / dist * 100)
+					float headRadiusFov = 3.5f / dist * 100.f;
+					if (fov > headRadiusFov)
+						break;
+				}
+
 				float jitteredDelay = RandomJitterF((float)TriggerBotCFG::Delay, 20.f);
 				Schedule(jitteredDelay);
 				break;

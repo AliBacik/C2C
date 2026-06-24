@@ -58,9 +58,10 @@ namespace MyConfigSaver
 
 
 
-        ConfigData["Triggerbot"]["Enable"]=  TriggerBotCFG::Enabled;
-        ConfigData["Triggerbot"]["Delay"]=   TriggerBotCFG::Delay;
-        ConfigData["Triggerbot"]["Hotkey"]= TriggerBotCFG::HotKey;
+        ConfigData["Triggerbot"]["Enable"]=    TriggerBotCFG::Enabled;
+        ConfigData["Triggerbot"]["Delay"]=     TriggerBotCFG::Delay;
+        ConfigData["Triggerbot"]["Hotkey"]=    TriggerBotCFG::HotKey;
+        ConfigData["Triggerbot"]["HeadOnly"]=  TriggerBotCFG::HeadOnly;
 
         ConfigData["Misc"]["WorkInSpec"]=    MenuConfig::WorkInSpec;
         ConfigData["Misc"]["Watermark"]=     MiscCFG::WaterMark;
@@ -135,9 +136,10 @@ namespace MyConfigSaver
 
         if (ConfigData.contains("Triggerbot"))
         {
-            TriggerBotCFG::Enabled = ReadData(ConfigData["Triggerbot"], { "Enable" }, false);
-            TriggerBotCFG::Delay = ReadData(ConfigData["Triggerbot"], { "Delay" }, 100);
-            TriggerBotCFG::HotKey = ReadData(ConfigData["Triggerbot"], { "Hotkey" }, VK_MENU);
+            TriggerBotCFG::Enabled   = ReadData(ConfigData["Triggerbot"], { "Enable" },   false);
+            TriggerBotCFG::Delay     = ReadData(ConfigData["Triggerbot"], { "Delay" },    100);
+            TriggerBotCFG::HotKey    = ReadData(ConfigData["Triggerbot"], { "Hotkey" },   VK_MENU);
+            TriggerBotCFG::HeadOnly  = ReadData(ConfigData["Triggerbot"], { "HeadOnly" }, false);
         }
 
         if (ConfigData.contains("Misc"))

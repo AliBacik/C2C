@@ -236,6 +236,7 @@ namespace GUI
 						{
 							static const int DelayMin = 10, DelayMax = 500;
 							PutSliderInt("Delay (ms)", 5.f, &TriggerBotCFG::Delay, &DelayMin, &DelayMax, "%d ms");
+							PutSwitch("Head Only", 5.f, ImGui::GetFrameHeight() * 1.7, &TriggerBotCFG::HeadOnly);
 							PutSwitch("Always Active", 5.f, ImGui::GetFrameHeight() * 1.7, &TriggerBotCFG::AlwaysActive);
 
 							if (!TriggerBotCFG::AlwaysActive)
