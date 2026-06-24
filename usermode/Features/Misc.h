@@ -222,12 +222,18 @@ namespace Misc
 
 namespace TriggerBot
 {
+	using clock_t = std::chrono::steady_clock;
+	using tp_t    = clock_t::time_point;
+
+	// state machine — ana loop'ta her frame Tick() cagrisi ile yonetilir, thread yok
 	static std::atomic<bool> g_shooting{ false };
-	static std::chrono::steady_clock::time_point g_lastShotTime{};
+	static tp_t g_shotPressAt{};   // mouse down zaman
+	static tp_t g_shotReleaseAt{}; // mouse up zaman
+	static tp_t g_lastShotTime{};  // spam guard
 
 	static inline bool CheckScopeWeapon(const std::string& weapon)
 	{
-		return weapon == "awp" || weapon == "ssg08" || weapon == "scar20" || weapon == "g3Sg1";
+		return weapon == "awp" || weapon == "ssg08" || weapon == "scar20" || weapon == "g3sg1";
 	}
 
 	static inline std::string GetWeapon(const CEntity& local)
@@ -240,36 +246,44 @@ namespace TriggerBot
 		static std::random_device rd;
 		static std::mt19937 rng(rd());
 		std::normal_distribution<float> dist(base, stddev);
-		// minimum 10ms garantile, cok yuksek outlier'lari da kes
 		float val = dist(rng);
-		float minVal = base * 0.9f;
-		return std::clamp(val, minVal, base + stddev * 3.f);
+		return std::clamp(val, base * 0.5f, base + stddev * 3.f);
 	}
 
-	static inline void DoShoot(float delayMs)
+	// her frame ana loop'ta cagrilir — mouse press/release timing'ini yonetir
+	static inline void Tick()
 	{
-		if (g_shooting.exchange(true))
+		if (!g_shooting.load())
 			return;
 
-		// hotkey sol click degilse ve sol click zaten basılıysa overlap etme
-		if (TriggerBotCFG::HotKey != VK_LBUTTON && (GetAsyncKeyState(VK_LBUTTON) & 0x8000))
+		auto now = clock_t::now();
+
+		if (now >= g_shotPressAt && now < g_shotReleaseAt)
 		{
-			g_shooting = false;
-			return;
-		}
-
-		g_lastShotTime = std::chrono::steady_clock::now();
-
-		std::thread([delayMs]() {
-			auto sleepUs = [](float ms) {
-				std::this_thread::sleep_for(std::chrono::microseconds((long long)(ms * 1000.f)));
-			};
-			sleepUs(delayMs);
 			mouse_click(true);
-			sleepUs(RandomJitterF(12.f, 8.f));
+		}
+		else if (now >= g_shotReleaseAt)
+		{
 			mouse_click(false);
 			g_shooting = false;
-		}).detach();
+			g_lastShotTime = now;
+		}
+	}
+
+	static inline void Schedule(float delayMs)
+	{
+		if (g_shooting.load())
+			return;
+
+		// sol click hotkey degil ama sol click zaten basili ise overlap etme
+		if (TriggerBotCFG::HotKey != VK_LBUTTON && (GetAsyncKeyState(VK_LBUTTON) & 0x8000))
+			return;
+
+		auto now = clock_t::now();
+		float holdMs = RandomJitterF(12.f, 6.f);
+		g_shotPressAt   = now + std::chrono::microseconds((long long)(delayMs * 1000.f));
+		g_shotReleaseAt = g_shotPressAt + std::chrono::microseconds((long long)(holdMs * 1000.f));
+		g_shooting = true;
 	}
 
 	static inline void Update(const CEntity& localEntity, const std::vector<EntityResult>& entities, int crosshairEntIndex)
@@ -286,8 +300,12 @@ namespace TriggerBot
 		if (crosshairEntIndex <= 0)
 			return;
 
-		// atesler arasi minimum süre (spam önleme)
-		auto now = std::chrono::steady_clock::now();
+		// henuz onceki seri bitmemisse bekle
+		if (g_shooting.load())
+			return;
+
+		// atesler arasi minimum sure (spam onleme)
+		auto now = clock_t::now();
 		long long msSinceLastShot = std::chrono::duration_cast<std::chrono::milliseconds>(now - g_lastShotTime).count();
 		if (msSinceLastShot < 50)
 			return;
@@ -312,7 +330,7 @@ namespace TriggerBot
 			if ((result.entityIndex + 1) == crosshairEntIndex)
 			{
 				float jitteredDelay = RandomJitterF((float)TriggerBotCFG::Delay, 20.f);
-				DoShoot(jitteredDelay);
+				Schedule(jitteredDelay);
 				break;
 			}
 		}

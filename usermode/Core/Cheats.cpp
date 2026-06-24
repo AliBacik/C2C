@@ -93,6 +93,7 @@ void Cheats::Run()
 
 	// triggerbot
 	bool tbFired = TriggerBot::g_shooting.load();
+	TriggerBot::Tick();
 	TriggerBot::Update(LocalEntity, entityResults, crosshairEnt);
 	bool tbFiredNow = !tbFired && TriggerBot::g_shooting.load();
 
