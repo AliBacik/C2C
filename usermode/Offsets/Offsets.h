@@ -1,10 +1,6 @@
 #pragma once
 #include <Windows.h>
 #include "../Core/MemoryMgr.h"
-#include <json.hpp>
-#include "../Helpers/WebApi.h"
-
-using json = nlohmann::json;
 
 class Offsets
 {
@@ -125,8 +121,6 @@ public:
 		DWORD m_nBombSite;
 	} C4;
 
-private:
-	void SetOffsets(const std::string&, const std::string&, const std::string&);
 };
 
 inline Offsets Offset;
