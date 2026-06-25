@@ -79,9 +79,10 @@ void Cheats::Run()
 		m_currentTick = 0;
 	}
 
-	// dwViewAngles global'den gercek local yaw — pawn m_angEyeAngles server-confirmed, donuste gecikebilir
+	// v_angle (C_BasePlayerPawn+0x1298) = gercek input view angle, m_angEyeAngles animasyon icin
 	Vec2 localViewAngle{};
-	if (!memoryManager.ReadMemory<Vec2>(gGame.GetViewAngleAddress(), localViewAngle))
+	memoryManager.ReadMemory<Vec2>(LocalPawnAddress + 0x1298, localViewAngle);
+	if (localViewAngle.x == 0.f && localViewAngle.y == 0.f)
 		localViewAngle = LocalEntity.Pawn.ViewAngle;
 
 	// radar data
