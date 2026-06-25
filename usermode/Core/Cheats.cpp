@@ -79,6 +79,11 @@ void Cheats::Run()
 		m_currentTick = 0;
 	}
 
+	// dwViewAngles global'den gercek local yaw — pawn m_angEyeAngles server-confirmed, donuste gecikebilir
+	Vec2 localViewAngle{};
+	if (!memoryManager.ReadMemory<Vec2>(gGame.GetViewAngleAddress(), localViewAngle))
+		localViewAngle = LocalEntity.Pawn.ViewAngle;
+
 	// radar data
 	Base_Radar GameRadar;
 	if ((RadarCFG::ShowRadar && LocalEntity.Controller.TeamID != 0) || (RadarCFG::ShowRadar && MenuConfig::ShowMenu))
@@ -97,7 +102,7 @@ void Cheats::Run()
 	Analytics::Render();
 
 	// render entities
-	HandleEnts(entityResults, LocalEntity, LocalPlayerControllerIndex, GameRadar);
+	HandleEnts(entityResults, LocalEntity, LocalPlayerControllerIndex, GameRadar, localViewAngle.y);
 
 	Radar(GameRadar, LocalEntity);
 
@@ -220,7 +225,7 @@ std::vector<EntityResult> Cheats::ProcessEntities(CEntity& localEntity, int& loc
 
 // render esp and radar data
 void Cheats::HandleEnts(const std::vector<EntityResult>& entities, CEntity& localEntity,
-	int localPlayerControllerIndex, Base_Radar& gameRadar)
+	int localPlayerControllerIndex, Base_Radar& gameRadar, float localYaw)
 {
 	// healthbar map (static)
 	static std::map<DWORD64, Render::HealthBar> HealthBarMap;
@@ -240,7 +245,7 @@ void Cheats::HandleEnts(const std::vector<EntityResult>& entities, CEntity& loca
 		// add entity to radar
 		if (RadarCFG::ShowRadar && localEntity.Controller.TeamID != 0)
 		{
-			gameRadar.AddPoint(localEntity.Pawn.Pos, localEntity.Pawn.ViewAngle.y,
+			gameRadar.AddPoint(localEntity.Pawn.Pos, localYaw,
 				entity.Pawn.Pos, ImColor(237, 85, 106, 200), RadarCFG::RadarType, entity.Pawn.ViewAngle.y);
 		}
 
