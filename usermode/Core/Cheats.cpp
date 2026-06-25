@@ -27,27 +27,9 @@
 #include "../Core/GUI.h"
 #include "../Helpers/Logger.h"
 
-static float GetMapScale(const std::string& map_name)
-{
-    if (map_name.find("ar_baggage")  != std::string::npos) return 2.539062f;
-    if (map_name.find("ar_shoots")   != std::string::npos) return 2.6875f;
-    if (map_name.find("cs_italy")    != std::string::npos) return 4.6f;
-    if (map_name.find("cs_office")   != std::string::npos) return 4.1f;
-    if (map_name.find("de_ancient")  != std::string::npos) return 5.0f;
-    if (map_name.find("de_anubis")   != std::string::npos) return 5.22f;
-    if (map_name.find("de_dust2")    != std::string::npos) return 4.4f;
-    if (map_name.find("de_dust")     != std::string::npos) return 6.0f;
-    if (map_name.find("de_inferno")  != std::string::npos) return 4.9f;
-    if (map_name.find("de_mirage")   != std::string::npos) return 5.0f;
-    if (map_name.find("de_nuke")     != std::string::npos) return 7.0f;
-    if (map_name.find("de_overpass") != std::string::npos) return 5.2f;
-    if (map_name.find("de_train")    != std::string::npos) return 4.082077f;
-    if (map_name.find("de_vertigo")  != std::string::npos) return 4.0f;
-    return 5.0f;
-}
-
 void Menu();
-void RenderRadar(const std::vector<RadarEntry>& players, const CEntity& LocalEntity, float mapScale);
+void Radar(Base_Radar, const CEntity&);
+void RadarSetting(Base_Radar&);
 void RenderCrosshair(ImDrawList* drawList, const CEntity& LocalEntity);
 
 void Cheats::Run()
@@ -97,6 +79,11 @@ void Cheats::Run()
 		m_currentTick = 0;
 	}
 
+	// radar data
+	Base_Radar GameRadar;
+	if ((RadarCFG::ShowRadar && LocalEntity.Controller.TeamID != 0) || (RadarCFG::ShowRadar && MenuConfig::ShowMenu))
+		RadarSetting(GameRadar);
+
 	// process entities
 	auto entityResults = ProcessEntities(LocalEntity, LocalPlayerControllerIndex);
 
@@ -110,26 +97,14 @@ void Cheats::Run()
 	Analytics::Render();
 
 	// render entities
-	HandleEnts(entityResults, LocalEntity, LocalPlayerControllerIndex);
+	// dwViewAngles global adresten oku — m_angEyeAngles lokal oyuncuda lag yapabiliyor
+	Vec2 localViewAngle{};
+	memoryManager.ReadMemory<Vec2>(gGame.GetViewAngleAddress(), localViewAngle);
+	float localYaw = (localViewAngle.y != 0.f) ? localViewAngle.y : LocalEntity.Pawn.ViewAngle.y;
 
-	// radar
-	if (RadarCFG::ShowRadar && LocalEntity.Controller.TeamID != 0)
-	{
-		float mapScale = GetMapScale(Cheats::GetCurrentMapName());
-		std::vector<RadarEntry> radarEntries;
-		for (const auto& r : entityResults)
-		{
-			if (!r.isValid) continue;
-			RadarEntry e;
-			e.x      = r.entity.Pawn.Pos.x;
-			e.y      = r.entity.Pawn.Pos.y;
-			e.team   = r.entity.Controller.TeamID;
-			e.health = r.entity.Pawn.Health;
-			e.valid  = true;
-			radarEntries.push_back(e);
-		}
-		RenderRadar(radarEntries, LocalEntity, mapScale);
-	}
+	HandleEnts(entityResults, LocalEntity, LocalPlayerControllerIndex, GameRadar, localYaw);
+
+	Radar(GameRadar, LocalEntity);
 
 	RenderCrosshair(ImGui::GetBackgroundDrawList(), LocalEntity);
 	SpecList::SpectatorWindowList(LocalEntity);
@@ -248,9 +223,9 @@ std::vector<EntityResult> Cheats::ProcessEntities(CEntity& localEntity, int& loc
 	return results;
 }
 
-// render esp
+// render esp and radar data
 void Cheats::HandleEnts(const std::vector<EntityResult>& entities, CEntity& localEntity,
-	int localPlayerControllerIndex)
+	int localPlayerControllerIndex, Base_Radar& gameRadar, float localYaw)
 {
 	// healthbar map (static)
 	static std::map<DWORD64, Render::HealthBar> HealthBarMap;
@@ -266,6 +241,13 @@ void Cheats::HandleEnts(const std::vector<EntityResult>& entities, CEntity& loca
 
 		const auto& entity = result.entity;
 		const int entityIndex = result.entityIndex;
+
+		// add entity to radar
+		if (RadarCFG::ShowRadar && localEntity.Controller.TeamID != 0)
+		{
+			gameRadar.AddPoint(localEntity.Pawn.Pos, localYaw,
+				entity.Pawn.Pos, ImColor(237, 85, 106, 200), RadarCFG::RadarType, entity.Pawn.ViewAngle.y);
+		}
 
 		// Out-of-FOV arrow
 		if (localEntity.IsAlive()) {
@@ -335,60 +317,54 @@ void Menu()
 		GUI::DrawGui();
 }
 
-void RenderRadar(const std::vector<RadarEntry>& players, const CEntity& LocalEntity, float mapScale)
+void Radar(Base_Radar Radar, const CEntity& LocalEntity)
 {
-	ImDrawList* draw = ImGui::GetBackgroundDrawList();
-	ImVec2 screen = ImGui::GetIO().DisplaySize;
-
-	// pozisyonu ekran boyutuna oransal tut — 1920x1080 referans
-	float rx = RadarCFG::RadarPos.x * (screen.x / 1920.f);
-	float ry = RadarCFG::RadarPos.y * (screen.y / 1080.f);
-	float sz = RadarCFG::RadarSize  * (screen.y / 1080.f);
-
-	// drag logic — sadece menu acikken suruklenebilir
-	if (MenuConfig::ShowMenu)
+	// Radar render
+	if ((RadarCFG::ShowRadar && LocalEntity.Controller.TeamID != 0) || (RadarCFG::ShowRadar && MenuConfig::ShowMenu))
 	{
-		static bool  s_dragging  = false;
-		static ImVec2 s_dragOffset = {0, 0};
+		Radar.Render();
 
-		ImVec2 mouse = ImGui::GetIO().MousePos;
-		bool mouseDown = ImGui::GetIO().MouseDown[0];
+		MenuConfig::RadarWinPos = ImGui::GetWindowPos();
+		ImGui::End();
+	}
+}
 
-		bool hovered = mouse.x >= rx && mouse.x <= rx + sz &&
-		               mouse.y >= ry && mouse.y <= ry + sz;
+void RadarSetting(Base_Radar& Radar)
+{
+	// Radar window
+	ImGui::SetNextWindowBgAlpha(RadarCFG::RadarBgAlpha);
+	ImGui::Begin("Radar", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+	ImGui::SetWindowSize({ RadarCFG::RadarRange * 2, RadarCFG::RadarRange * 2 });
+	ImGui::SetWindowPos(MenuConfig::RadarWinPos, ImGuiCond_Once);
 
-		if (!s_dragging && mouseDown && hovered)
-		{
-			s_dragging   = true;
-			s_dragOffset = {mouse.x - rx, mouse.y - ry};
-		}
-
-		if (s_dragging)
-		{
-			if (mouseDown)
-			{
-				float newRx = mouse.x - s_dragOffset.x;
-				float newRy = mouse.y - s_dragOffset.y;
-				// geri normalize et (1920x1080 referansina)
-				RadarCFG::RadarPos.x = newRx / (screen.x / 1920.f);
-				RadarCFG::RadarPos.y = newRy / (screen.y / 1080.f);
-				rx = newRx;
-				ry = newRy;
-			}
-			else
-			{
-				s_dragging = false;
-			}
-		}
+	if (MenuConfig::RadarWinChengePos)
+	{
+		ImGui::SetWindowPos("Radar", MenuConfig::RadarWinPos);
+		MenuConfig::RadarWinChengePos = false;
 	}
 
-	Base_Radar radar;
-	radar.Draw(draw, players,
-	           LocalEntity.Pawn.Pos.x, LocalEntity.Pawn.Pos.y,
-	           LocalEntity.Pawn.ViewAngle.y,
-	           LocalEntity.Controller.TeamID,
-	           mapScale,
-	           rx, ry, sz);
+	if (!RadarCFG::customRadar)
+	{
+		RadarCFG::ShowRadarCrossLine = false;
+		RadarCFG::Proportion = 2700.f;
+		RadarCFG::RadarPointSizeProportion = 1.f;
+		RadarCFG::RadarRange = 125.f;
+		RadarCFG::RadarBgAlpha = 0.1f;
+	}
+
+	Radar.SetDrawList(ImGui::GetWindowDrawList());
+	Radar.SetPos({ ImGui::GetWindowPos().x + RadarCFG::RadarRange, ImGui::GetWindowPos().y + RadarCFG::RadarRange });
+	Radar.SetProportion(RadarCFG::Proportion);
+	Radar.SetRange(RadarCFG::RadarRange);
+	Radar.SetSize(RadarCFG::RadarRange * 2);
+	Radar.SetCrossColor(RadarCFG::RadarCrossLineColor);
+
+	Radar.ArcArrowSize *= RadarCFG::RadarPointSizeProportion;
+	Radar.ArrowSize *= RadarCFG::RadarPointSizeProportion;
+	Radar.CircleSize *= RadarCFG::RadarPointSizeProportion;
+
+	Radar.ShowCrossLine = RadarCFG::ShowRadarCrossLine;
+	Radar.Opened = true;
 }
 
 void RenderCrosshair(ImDrawList* drawList, const CEntity& LocalEntity)

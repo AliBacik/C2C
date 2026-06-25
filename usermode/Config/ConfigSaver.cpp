@@ -42,10 +42,19 @@ namespace MyConfigSaver
 
 
 
-        ConfigData["Radar"]["Enable"]  = RadarCFG::ShowRadar;
-        ConfigData["Radar"]["Size"]    = RadarCFG::RadarSize;
-        ConfigData["Radar"]["PosX"]    = RadarCFG::RadarPos.x;
-        ConfigData["Radar"]["PosY"]    = RadarCFG::RadarPos.y;
+        ConfigData["Radar"]["Enable"] =            RadarCFG::ShowRadar;
+        ConfigData["Radar"]["Type"]=               RadarCFG::RadarType;
+        ConfigData["Radar"]["Range"]=              RadarCFG::RadarRange;
+        ConfigData["Radar"]["Proportion"]=         RadarCFG::Proportion;
+        ConfigData["Radar"]["PointProportion"]=    RadarCFG::RadarPointSizeProportion;
+        ConfigData["Radar"]["Alpha"]=              RadarCFG::RadarBgAlpha;
+        ConfigData["Radar"]["Custom"]=             RadarCFG::customRadar;
+        ConfigData["Radar"]["Crossline"]=          RadarCFG::ShowRadarCrossLine;
+
+        ConfigData["Radar"]["CrosslineColor"]["r"]=         RadarCFG::RadarCrossLineColor.Value.x;
+        ConfigData["Radar"]["CrosslineColor"]["g"]=         RadarCFG::RadarCrossLineColor.Value.y;
+        ConfigData["Radar"]["CrosslineColor"]["b"]=         RadarCFG::RadarCrossLineColor.Value.z;
+        ConfigData["Radar"]["CrosslineColor"]["a"]=         RadarCFG::RadarCrossLineColor.Value.w;
 
 
 
@@ -66,8 +75,10 @@ namespace MyConfigSaver
         ConfigData["MenuConfig"]["BombWinPos"]["x"] = MenuConfig::BombWinPos.x;
         ConfigData["MenuConfig"]["BombWinPos"]["y"] = MenuConfig::BombWinPos.y;
 
-        ConfigData["MenuConfig"]["RadarWinPos"]["x"] = MenuConfig::RadarWinPos.x;
-        ConfigData["MenuConfig"]["RadarWinPos"]["y"] = MenuConfig::RadarWinPos.y;
+        // normalize et — farkli cozunurlukler arasi tasimak icin
+        ImVec2 screen = ImGui::GetIO().DisplaySize;
+        ConfigData["MenuConfig"]["RadarWinPos"]["nx"] = (screen.x > 0) ? MenuConfig::RadarWinPos.x / screen.x : 0.f;
+        ConfigData["MenuConfig"]["RadarWinPos"]["ny"] = (screen.y > 0) ? MenuConfig::RadarWinPos.y / screen.y : 0.f;
 
         ConfigData["MenuConfig"]["SpecWinPos"]["x"] = MenuConfig::SpecWinPos.x;
         ConfigData["MenuConfig"]["SpecWinPos"]["y"] = MenuConfig::SpecWinPos.y;
@@ -110,10 +121,18 @@ namespace MyConfigSaver
 
         if (ConfigData.contains("Radar"))
         {
-            RadarCFG::ShowRadar  = ReadData(ConfigData["Radar"], {"Enable"}, false);
-            RadarCFG::RadarSize  = ReadData(ConfigData["Radar"], {"Size"},   250.f);
-            RadarCFG::RadarPos.x = ReadData(ConfigData["Radar"], {"PosX"},   35.f);
-            RadarCFG::RadarPos.y = ReadData(ConfigData["Radar"], {"PosY"},   35.f);
+            RadarCFG::ShowRadar = ReadData(ConfigData["Radar"],{"Enable"}, false);
+            RadarCFG::RadarType = ReadData(ConfigData["Radar"],{"Type"}, 2);
+            RadarCFG::RadarRange = ReadData(ConfigData["Radar"],{"Range"}, 150.f);
+            RadarCFG::Proportion = ReadData(ConfigData["Radar"],{"Proportion"}, 3300.f);
+            RadarCFG::RadarPointSizeProportion = ReadData(ConfigData["Radar"],{"PointProportion"}, 1.f);
+            RadarCFG::RadarBgAlpha = ReadData(ConfigData["Radar"],{"Alpha"}, 0.1f);
+            RadarCFG::customRadar = ReadData(ConfigData["Radar"],{"Custom"}, false);
+            RadarCFG::ShowRadarCrossLine = ReadData(ConfigData["Radar"],{"Crossline"}, false);
+            RadarCFG::RadarCrossLineColor.Value.x = ReadData(ConfigData["Radar"],{"CrosslineColor","r"}, 0.f);
+            RadarCFG::RadarCrossLineColor.Value.y = ReadData(ConfigData["Radar"],{"CrosslineColor","g"}, 0.f);
+            RadarCFG::RadarCrossLineColor.Value.z = ReadData(ConfigData["Radar"],{"CrosslineColor","b"}, 0.f);
+            RadarCFG::RadarCrossLineColor.Value.w = ReadData(ConfigData["Radar"],{"CrosslineColor","a"}, 255.f);
         }
 
         if (ConfigData.contains("Triggerbot"))
@@ -142,8 +161,17 @@ namespace MyConfigSaver
             MenuConfig::BombWinPos.x = ReadData(ConfigData["MenuConfig"], { "BombWinPos","x" }, (ImGui::GetIO().DisplaySize.x - 200.0f) / 2.0f);
             MenuConfig::BombWinPos.y = ReadData(ConfigData["MenuConfig"], { "BombWinPos","y" }, 80.0f);
 
-            MenuConfig::RadarWinPos.x = ReadData(ConfigData["MenuConfig"], { "RadarWinPos","x" }, 0.f);
-            MenuConfig::RadarWinPos.y = ReadData(ConfigData["MenuConfig"], { "RadarWinPos","y" }, 0.f);
+            ImVec2 screen = ImGui::GetIO().DisplaySize;
+            float rnx = ReadData(ConfigData["MenuConfig"], { "RadarWinPos","nx" }, -1.f);
+            float rny = ReadData(ConfigData["MenuConfig"], { "RadarWinPos","ny" }, -1.f);
+            if (rnx >= 0.f && rny >= 0.f) {
+                MenuConfig::RadarWinPos.x = rnx * screen.x;
+                MenuConfig::RadarWinPos.y = rny * screen.y;
+            } else {
+                // eski format veya yok — fallback sol ust
+                MenuConfig::RadarWinPos.x = ReadData(ConfigData["MenuConfig"], { "RadarWinPos","x" }, 35.f);
+                MenuConfig::RadarWinPos.y = ReadData(ConfigData["MenuConfig"], { "RadarWinPos","y" }, 35.f);
+            }
 
             MenuConfig::SpecWinPos.x = ReadData(ConfigData["MenuConfig"], { "SpecWinPos","x" }, 10.0f);
             MenuConfig::SpecWinPos.y = ReadData(ConfigData["MenuConfig"], { "SpecWinPos","y" }, ImGui::GetIO().DisplaySize.y / 2 - 200);

@@ -200,11 +200,22 @@ namespace GUI
 					ImGui::Dummy({ 0.f, ImGui::GetFrameHeight() * 9 });
 
 					ImGui::GradientText("Radar");
-					static const float RadarSizeMin = 100.f, RadarSizeMax = 500.f;
+					static const float RadarPointSizeProportionMin = 0.2f, RadarPointSizeProportionMax = 2.f;
+					static const float ProportionMin = 500.f, ProportionMax = 15000.f;
+					static const float RadarRangeMin = 100.f, RadarRangeMax = 300.f;
+					static const float AlphaMin = 0.f, AlphaMax = 1.f;
 					PutSwitch(Text::Radar::Toggle.c_str(), 5.f, ImGui::GetFrameHeight() * 1.7, &RadarCFG::ShowRadar);
 					if (RadarCFG::ShowRadar)
 					{
-						PutSliderFloat("Size", 5.f, &RadarCFG::RadarSize, &RadarSizeMin, &RadarSizeMax, "%.0f");
+						PutSwitch(Text::Radar::CustomCheck.c_str(), 5.f, ImGui::GetFrameHeight() * 1.7, &RadarCFG::customRadar);
+						if (RadarCFG::customRadar)
+						{
+							PutSwitch(Text::Radar::CrossLine.c_str(), 5.f, ImGui::GetFrameHeight() * 1.7, &RadarCFG::ShowRadarCrossLine);
+							PutSliderFloat(Text::Radar::SizeSlider.c_str(), 5.f, &RadarCFG::RadarPointSizeProportion, &RadarPointSizeProportionMin, &RadarPointSizeProportionMax, "%.1f");
+							PutSliderFloat(Text::Radar::ProportionSlider.c_str(), 5.f, &RadarCFG::Proportion, &ProportionMin, &ProportionMax, "%.1f");
+							PutSliderFloat(Text::Radar::RangeSlider.c_str(), 5.f, &RadarCFG::RadarRange, &RadarRangeMin, &RadarRangeMax, "%.1f");
+							PutSliderFloat(Text::Radar::AlphaSlider.c_str(), 5.f, &RadarCFG::RadarBgAlpha, &AlphaMin, &AlphaMax, "%.1f");
+						}
 					}
 
 					ImGui::Columns(1);
