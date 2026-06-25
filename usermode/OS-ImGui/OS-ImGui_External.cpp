@@ -3,6 +3,8 @@
 #include "../Helpers/Logger.h"
 #include <map>
 #include <utility>
+#include <chrono>
+#include <thread>
 
 // D3D11 Device
 namespace OSImGui
@@ -282,16 +284,33 @@ namespace OSImGui
 
     void OSImGui_External::MainLoop()
     {
-        // Cache frequently used values
+        static int frameSkip = 0;
+
+        // Windows timer cozunurlugunu 1ms'ye indir — daha hassas sleep saglar
+        static bool timer_init = false;
+        if (!timer_init) {
+            HMODULE hWinMM = LoadLibraryA("winmm.dll");
+            if (hWinMM) {
+                using TimeBeginPeriodFunc = UINT(WINAPI*)(UINT);
+                auto timeBeginPeriod = reinterpret_cast<TimeBeginPeriodFunc>(GetProcAddress(hWinMM, "timeBeginPeriod"));
+                if (timeBeginPeriod) {
+                    timeBeginPeriod(1);
+                }
+            }
+            timer_init = true;
+        }
+
+        auto last_frame_time = std::chrono::steady_clock::now();
+
         constexpr DWORD excludeCapture = WDA_EXCLUDEFROMCAPTURE;
         constexpr DWORD includeCapture = WDA_NONE;
 
         while (!EndFlag)
         {
-            if (PeekEndMessage()) 
+            if (PeekEndMessage())
                 break;
 
-            if (Type == ATTACH && !UpdateWindowData()) 
+            if (Type == ATTACH && !UpdateWindowData())
                 break;
 
             // Skip rendering when the game window is not focused
@@ -313,15 +332,15 @@ namespace OSImGui
 
             ImGuiIO& io = ImGui::GetIO();
 
-            static bool keyState[256] = { true }; // Track keys
+            static bool keyState[256] = { true };
 
             if (MenuConfig::ShowMenu) {
                 for (int vkKey = 'A'; vkKey <= 'Z'; ++vkKey) {
-                    toggleKey(vkKey, keyState[vkKey], io); // A-Z
+                    toggleKey(vkKey, keyState[vkKey], io);
                 }
 
                 for (int vkKey = '0'; vkKey <= '9'; ++vkKey) {
-                    toggleKey(vkKey, keyState[vkKey], io); // 0-9
+                    toggleKey(vkKey, keyState[vkKey], io);
                 }
 
                 static bool LMouseState = true, RMouseState = true, MMouseState = true;
@@ -341,21 +360,22 @@ namespace OSImGui
                 toggleKey(VK_LEFT, ArrowLeft, ImGuiKey_LeftArrow, ImGuiMod_None, io);
                 toggleKey(VK_RIGHT, ArrowRight, ImGuiKey_RightArrow, ImGuiMod_None, io);
 
-                toggleKey(VK_OEM_1, keyState[VK_OEM_1], io);			// ;
-                toggleKey(VK_OEM_PLUS, keyState[VK_OEM_PLUS], io);		// =
-                toggleKey(VK_OEM_COMMA, keyState[VK_OEM_COMMA], io);	// <
-                toggleKey(VK_OEM_MINUS, keyState[VK_OEM_MINUS], io);	// -
-                toggleKey(VK_OEM_PERIOD, keyState[VK_OEM_PERIOD], io);	// >
-                toggleKey(VK_SPACE, keyState[VK_SPACE], io);			// Space
-                toggleKey(VK_OEM_2, keyState[VK_OEM_2], io);			// /
-                toggleKey(VK_OEM_3, keyState[VK_OEM_3], io);			// `
-                toggleKey(VK_OEM_4, keyState[VK_OEM_4], io);			// [
-                toggleKey(VK_OEM_5, keyState[VK_OEM_5], io);			// |
-                toggleKey(VK_OEM_6, keyState[VK_OEM_6], io);			// ]
-                toggleKey(VK_OEM_7, keyState[VK_OEM_7], io);			// /
+                toggleKey(VK_OEM_1, keyState[VK_OEM_1], io);
+                toggleKey(VK_OEM_PLUS, keyState[VK_OEM_PLUS], io);
+                toggleKey(VK_OEM_COMMA, keyState[VK_OEM_COMMA], io);
+                toggleKey(VK_OEM_MINUS, keyState[VK_OEM_MINUS], io);
+                toggleKey(VK_OEM_PERIOD, keyState[VK_OEM_PERIOD], io);
+                toggleKey(VK_SPACE, keyState[VK_SPACE], io);
+                toggleKey(VK_OEM_2, keyState[VK_OEM_2], io);
+                toggleKey(VK_OEM_3, keyState[VK_OEM_3], io);
+                toggleKey(VK_OEM_4, keyState[VK_OEM_4], io);
+                toggleKey(VK_OEM_5, keyState[VK_OEM_5], io);
+                toggleKey(VK_OEM_6, keyState[VK_OEM_6], io);
+                toggleKey(VK_OEM_7, keyState[VK_OEM_7], io);
             } else { io.ClearInputKeys(); }
 
-            // ImGui frame setup
+            ++frameSkip;
+
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
             ImGui::NewFrame();
@@ -364,14 +384,42 @@ namespace OSImGui
 
             ImGui::Render();
 
-            SetWindowDisplayAffinity(Window.hWnd, MenuConfig::BypassOBS ? excludeCapture : includeCapture);
+            if (frameSkip >= 1) {
+                SetWindowDisplayAffinity(Window.hWnd, MenuConfig::BypassOBS ? excludeCapture : includeCapture);
 
-            const float* actualClearColor = reinterpret_cast<const float*>(&Window.BgColor.Value);
-            g_Device.g_pd3dDeviceContext->OMSetRenderTargets(1, &g_Device.g_mainRenderTargetView, nullptr);
-            g_Device.g_pd3dDeviceContext->ClearRenderTargetView(g_Device.g_mainRenderTargetView, actualClearColor);
-            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+                static constexpr float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+                const float* actualClearColor = reinterpret_cast<const float*>(&Window.BgColor.Value);
 
-            g_Device.g_pSwapChain->Present(1, 0);
+                g_Device.g_pd3dDeviceContext->OMSetRenderTargets(1, &g_Device.g_mainRenderTargetView, nullptr);
+                g_Device.g_pd3dDeviceContext->ClearRenderTargetView(g_Device.g_mainRenderTargetView, actualClearColor);
+                ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+                // vsync kapali — FPS limiter ile manuel kontrol
+                g_Device.g_pSwapChain->Present(0, 0);
+                frameSkip = 0;
+            }
+
+            // Microsecond precision FPS limiter: hedef frame time'a 1500us kala uyku,
+            // geri kalan'i yield ile spin-wait — sleep yuvarlama hatalarindan korunur
+            if (MenuConfig::RenderFPS > 0) {
+                const int render_fps = MenuConfig::RenderFPS > 0 ? MenuConfig::RenderFPS : 1;
+                const long long target_frame_time_us = 1000000LL / render_fps;
+                const auto current_time = std::chrono::steady_clock::now();
+                const auto elapsed_us = std::chrono::duration_cast<std::chrono::microseconds>(current_time - last_frame_time).count();
+
+                if (elapsed_us < target_frame_time_us) {
+                    const long long sleep_us = target_frame_time_us - elapsed_us - 1500;
+                    if (sleep_us > 0) {
+                        std::this_thread::sleep_for(std::chrono::microseconds(sleep_us));
+                    }
+                    while (std::chrono::duration_cast<std::chrono::microseconds>(
+                        std::chrono::steady_clock::now() - last_frame_time).count() < target_frame_time_us) {
+                        std::this_thread::yield();
+                    }
+                }
+            }
+
+            last_frame_time = std::chrono::steady_clock::now();
         }
         CleanImGui();
     }

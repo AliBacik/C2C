@@ -16,11 +16,9 @@ namespace MenuConfig
 	struct {
 		// 0: Visual 1: Config
 		int MenuPage = 0;
-		ImVec2 MainWinSize = ImVec2(600.f, 500.f);
-		ImVec2 Button1Pos = ImVec2(0.f, 59.f);
-		ImVec2 Button2Pos = ImVec2(0.f, 118.f);
-		ImVec2 ChildPos = ImVec2(60.f, 0.f);
-		ImVec2 ChildSize = ImVec2(540.f, 500.f);
+		ImVec2 MainWinSize = ImVec2(620.f, 500.f);
+		ImVec2 ChildPos = ImVec2(54.f, 34.f);
+		ImVec2 ChildSize = ImVec2(566.f, 466.f);
 	} WCS;	// Window Component Settings
 
 	inline bool defaultConfig = false;

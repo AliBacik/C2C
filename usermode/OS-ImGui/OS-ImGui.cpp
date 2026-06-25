@@ -75,28 +75,38 @@ namespace OSImGui
     {
         ImVec2 p = ImGui::GetCursorScreenPos();
         ImDrawList* DrawList = ImGui::GetWindowDrawList();
-        float Height = ImGui::GetFrameHeight()*1.5;
-        float Width = Height;
-        float Radius = Height / 4-1;
+        float Height = ImGui::GetFrameHeight();
+        float Width  = Height * 1.8f;
+        float Radius = Height * 0.5f - 2.f;
 
-        ImGui::InvisibleButton(str_id, ImVec2(Width, Height-10));
+        ImGui::InvisibleButton(str_id, ImVec2(Width, Height));
         if (ImGui::IsItemClicked())
             *v = !(*v);
-        // Animation
+
         float t = *v ? 1.0f : 0.f;
         ImGuiContext& g = *GImGui;
-        float AnimationSpeed = 0.08f;
+        constexpr float AnimSpeed = 0.09f;
         if (g.LastActiveId == g.CurrentWindow->GetID(str_id))
         {
-            float T_Animation = ImSaturate(g.LastActiveIdTimer / AnimationSpeed);
-            t = *v ? (T_Animation) : (1.0f - T_Animation);
+            float anim = ImSaturate(g.LastActiveIdTimer / AnimSpeed);
+            t = *v ? anim : (1.0f - anim);
         }
-        // Hovered Color
-        ImU32 Color;
-        Color = ImGui::GetColorU32(ImLerp(ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered), ImGui::GetStyleColorVec4(ImGuiCol_CheckMark),t));
-        // Rendering
-        DrawList->AddRectFilled(ImVec2(p.x, p.y + Height * 0.30f), ImVec2(p.x + Width, p.y + Height * 0.70f), ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border)), Height);
-        DrawList->AddCircleFilled(ImVec2(p.x + Radius + t * (Width - Radius * 2), p.y + Radius + 9.5), Radius, Color, 360);
+
+        // track: dark when off, accent when on
+        ImU32 trackOff = IM_COL32(38, 38, 44, 255);
+        ImU32 trackOn  = IM_COL32(220, 72, 56, 255);
+        ImU32 trackCol = ImGui::GetColorU32(ImLerp(
+            ImVec4(38.f/255, 38.f/255, 44.f/255, 1.f),
+            ImVec4(220.f/255, 72.f/255, 56.f/255, 1.f), t));
+
+        float trackY0 = p.y + Height * 0.25f;
+        float trackY1 = p.y + Height * 0.75f;
+        DrawList->AddRectFilled(ImVec2(p.x, trackY0), ImVec2(p.x + Width, trackY1), trackCol, Height);
+
+        // thumb
+        float thumbX = p.x + Radius + 2.f + t * (Width - (Radius + 2.f) * 2.f);
+        float thumbY = p.y + Height * 0.5f;
+        DrawList->AddCircleFilled(ImVec2(thumbX, thumbY), Radius, IM_COL32(235, 235, 238, 255), 32);
     }
 
     void OSImGui::MyProgressBar(float fraction, const ImVec2& Size, const char* overlay, ImVec4 Color)
@@ -530,43 +540,37 @@ namespace OSImGui
             return ImGui::TempInputScalar(frame_bb, id, label, data_type, p_data, format, is_clamp_input ? p_min : NULL, is_clamp_input ? p_max : NULL);
         }
 
-        float grab_radius = 8;
+        float grab_radius = 6.f;
 
-        // Draw frame
+        // track
         ImRect frame_sc = frame_bb;
-        float frame_height_origin = frame_sc.GetHeight();
-        frame_sc.Min.y += frame_height_origin / 3;
-        frame_sc.Max.y -= frame_height_origin / 3;
-        //                                                                           grab color                            hover color                color
-        const ImU32 frame_col = ImGui::ColorConvertFloat4ToU32(g.ActiveId == id ? ImColor(ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered)) : hovered ? ImColor(ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered)) : ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border)));//ImGui::GetStyleColorVec4(ImGuiCol_ButtonHovered), ImGui::GetStyleColorVec4(ImGuiCol_CheckMark)
+        float fh = frame_sc.GetHeight();
+        frame_sc.Min.y += fh * 0.42f;
+        frame_sc.Max.y -= fh * 0.42f;
+        ImU32 track_col = (g.ActiveId == id || hovered)
+            ? IM_COL32(50, 50, 58, 255)
+            : IM_COL32(38, 38, 44, 255);
         ImGui::RenderNavHighlight(frame_bb, id);
-        window->DrawList->AddRectFilled(frame_sc.Min, frame_sc.Max, frame_col, grab_radius);
+        window->DrawList->AddRectFilled(frame_sc.Min, frame_sc.Max, track_col, 4.f);
 
         // Slider behavior
         ImRect grab_bb;
         const bool value_changed = ImGui::SliderBehavior(frame_bb, id, data_type, p_data, p_min, p_max, format, flags, &grab_bb);
         if (value_changed)
             ImGui::MarkItemEdited(id);
-        //ImLerp(ImVec4(RGBA_TO_FLOAT(31, 36, 70, 200)), ImVec4(RGBA_TO_FLOAT(55, 63, 124, 200)), t));
-        // Render grab
+
+        // filled portion (left of grab) — accent color
         if (grab_bb.Max.x > grab_bb.Min.x)
         {
             window->DrawList->AddRectFilled(
-                { grab_bb.GetCenter().x - grab_radius, grab_bb.GetCenter().y - grab_radius },
-                { grab_bb.GetCenter().x + grab_radius, grab_bb.GetCenter().y + grab_radius },
-                ImColor(ImGui::GetStyleColorVec4(ImGuiCol_CheckMark)), 20);
-            //window->DrawList->AddLine(
-            //    { grab_bb.GetCenter().x - grab_radius * 0.5f - 1, grab_bb.GetCenter().y - grab_radius * 0.75f },
-            //    { grab_bb.GetCenter().x - grab_radius * 0.5f - 1, grab_bb.GetCenter().y + grab_radius * 0.75f },
-            //    ImColor(150, 150, 150, 255), 1.3f);
-            //window->DrawList->AddLine(
-            //    { grab_bb.GetCenter().x - 1, grab_bb.GetCenter().y - grab_radius * 0.75f },
-            //    { grab_bb.GetCenter().x - 1, grab_bb.GetCenter().y + grab_radius * 0.75f },
-            //    ImColor(150, 150, 150, 255), 1.3f);
-            //window->DrawList->AddLine(
-            //    { grab_bb.GetCenter().x + grab_radius * 0.5f - 1, grab_bb.GetCenter().y - grab_radius * 0.75f },
-            //    { grab_bb.GetCenter().x + grab_radius * 0.5f - 1, grab_bb.GetCenter().y + grab_radius * 0.75f },
-            //    ImColor(150, 150, 150, 255), 1.3f);
+                frame_sc.Min,
+                ImVec2(grab_bb.GetCenter().x, frame_sc.Max.y),
+                IM_COL32(220, 72, 56, 255), 4.f);
+
+            // grab knob
+            ImVec2 gc = grab_bb.GetCenter();
+            window->DrawList->AddCircleFilled(gc, grab_radius, IM_COL32(235, 235, 238, 255), 24);
+            window->DrawList->AddCircleFilled(gc, grab_radius - 2.f, IM_COL32(220, 72, 56, 255), 24);
         }
 
         // Display value using user-provided display format so user can add prefix/suffix/decorations to the value.

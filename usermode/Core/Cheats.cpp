@@ -96,26 +96,13 @@ void Cheats::Run()
 	Analytics::Update(LocalEntity, entityResults, tbFiredNow);
 	Analytics::Render();
 
-	// render entities
-	// dwViewAngles global adresten oku — m_angEyeAngles lokal oyuncuda lag yapabiliyor
-	Vec2 localViewAngle{};
-	memoryManager.ReadMemory<Vec2>(gGame.GetViewAngleAddress(), localViewAngle);
-	float localYaw = (localViewAngle.y != 0.f) ? localViewAngle.y : LocalEntity.Pawn.ViewAngle.y;
-
-	HandleEnts(entityResults, LocalEntity, LocalPlayerControllerIndex, GameRadar, localYaw);
+	HandleEnts(entityResults, LocalEntity, LocalPlayerControllerIndex, GameRadar, LocalEntity.Pawn.ViewAngle.y);
 
 	Radar(GameRadar, LocalEntity);
 
 	RenderCrosshair(ImGui::GetBackgroundDrawList(), LocalEntity);
 	SpecList::SpectatorWindowList(LocalEntity);
 	bmb::RenderWindow(LocalEntity.Controller.TeamID);
-
-	int currentFPS = static_cast<int>(ImGui::GetIO().Framerate);
-	if (currentFPS > MenuConfig::RenderFPS)
-	{
-		int FrameWait = round(1000.0f / MenuConfig::RenderFPS);
-		std::this_thread::sleep_for(std::chrono::milliseconds(FrameWait));
-	}
 
 	if (m_currentTick != m_previousTick)
 	{

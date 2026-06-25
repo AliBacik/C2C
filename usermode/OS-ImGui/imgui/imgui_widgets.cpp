@@ -1546,46 +1546,42 @@ void ImGui::SeparatorText(const char* label)
 
 void ImGui::GradientText(const char* text)
 {
-    // Increase font scale
     ImFont* font = ImGui::GetFont();
     float oldScale = font->Scale;
-    font->Scale = 1.25f; // Increase by 15%
-    ImGui::PushFont(font);  // Ensure scaled font is applied
+    font->Scale = 1.1f;
+    ImGui::PushFont(font);
 
     ImVec2 textSize = ImGui::CalcTextSize(text);
-    float width = 180.0f;
-    float height = textSize.y + 2;
+    float height = textSize.y + 4.0f;
+    float width = textSize.x + 40.0f;
 
     ImVec2 cursorPos = ImGui::GetCursorScreenPos();
 
-    // Get the color of TextDisabled and create transparent version
-    ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-    ImU32 colorOpaque = ImGui::ColorConvertFloat4ToU32(color);
-    ImVec4 colorTransparent = color;
-    colorTransparent.w = 0.0f;
-    ImU32 colorTrans = ImGui::ColorConvertFloat4ToU32(colorTransparent);
+    // accent: red-orange
+    ImU32 accentOpaque = IM_COL32(220, 72, 56, 200);
+    ImU32 accentTrans  = IM_COL32(220, 72, 56, 0);
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    ImVec2 p1 = ImVec2(cursorPos.x - 15, cursorPos.y + 3.5f);
-    ImVec2 p3 = ImVec2(cursorPos.x, cursorPos.y + 3.5f);
-    ImVec2 p2 = ImVec2(p1.x + width, p1.y + height);
+    float padX = 8.0f;
+    ImVec2 p1 = ImVec2(cursorPos.x - padX, cursorPos.y);
+    ImVec2 p2 = ImVec2(cursorPos.x - padX + width, cursorPos.y + height);
 
-    // Draw background gradient
+    // left accent bar
+    drawList->AddRectFilled(ImVec2(p1.x, p1.y + 2), ImVec2(p1.x + 3, p2.y - 2), IM_COL32(220, 72, 56, 255), 2);
+
+    // fading gradient fill behind text
     drawList->AddRectFilledMultiColor(
-        p1, p2,
-        colorOpaque, // top-left
-        colorTrans,  // top-right
-        colorTrans,  // bottom-right
-        colorOpaque  // bottom-left
+        ImVec2(p1.x + 3, p1.y), p2,
+        accentOpaque, accentTrans,
+        accentTrans, accentOpaque
     );
 
-    // Set text color and render
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_ChildBg));
-    ImGui::SetCursorScreenPos(p3);
+    // text in bright white
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.95f, 0.95f, 0.97f, 1.00f));
+    ImGui::SetCursorScreenPos(ImVec2(cursorPos.x + 2, cursorPos.y + 2));
     ImGui::TextUnformatted(text);
     ImGui::PopStyleColor();
 
-    // Restore original font scale
     font->Scale = oldScale;
     ImGui::PopFont();
 }
