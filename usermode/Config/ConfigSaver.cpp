@@ -42,19 +42,10 @@ namespace MyConfigSaver
 
 
 
-        ConfigData["Radar"]["Enable"] =            RadarCFG::ShowRadar;
-        ConfigData["Radar"]["Type"]=               RadarCFG::RadarType;
-        ConfigData["Radar"]["Range"]=              RadarCFG::RadarRange;
-        ConfigData["Radar"]["Proportion"]=         RadarCFG::Proportion;
-        ConfigData["Radar"]["PointProportion"]=    RadarCFG::RadarPointSizeProportion;
-        ConfigData["Radar"]["Alpha"]=              RadarCFG::RadarBgAlpha;
-        ConfigData["Radar"]["Custom"]=             RadarCFG::customRadar;
-        ConfigData["Radar"]["Crossline"]=          RadarCFG::ShowRadarCrossLine;
-
-        ConfigData["Radar"]["CrosslineColor"]["r"]=         RadarCFG::RadarCrossLineColor.Value.x;
-        ConfigData["Radar"]["CrosslineColor"]["g"]=         RadarCFG::RadarCrossLineColor.Value.y;
-        ConfigData["Radar"]["CrosslineColor"]["b"]=         RadarCFG::RadarCrossLineColor.Value.z;
-        ConfigData["Radar"]["CrosslineColor"]["a"]=         RadarCFG::RadarCrossLineColor.Value.w;
+        ConfigData["Radar"]["Enable"]  = RadarCFG::ShowRadar;
+        ConfigData["Radar"]["Size"]    = RadarCFG::RadarSize;
+        ConfigData["Radar"]["PosX"]    = RadarCFG::RadarPos.x;
+        ConfigData["Radar"]["PosY"]    = RadarCFG::RadarPos.y;
 
 
 
@@ -119,19 +110,10 @@ namespace MyConfigSaver
 
         if (ConfigData.contains("Radar"))
         {
-            RadarCFG::ShowRadar = ReadData(ConfigData["Radar"],{"Enable"}, false);
-            RadarCFG::RadarType = ReadData(ConfigData["Radar"],{"Type"}, 2);
-            RadarCFG::RadarRange = ReadData(ConfigData["Radar"],{"Range"}, 150.f);
-            RadarCFG::Proportion = ReadData(ConfigData["Radar"],{"Proportion"}, 3300.f);
-            RadarCFG::RadarPointSizeProportion = ReadData(ConfigData["Radar"],{"PointProportion"}, 1.f);
-            RadarCFG::RadarBgAlpha = ReadData(ConfigData["Radar"],{"Alpha"}, 0.1f);
-            RadarCFG::customRadar = ReadData(ConfigData["Radar"],{"Custom"}, false);
-            RadarCFG::ShowRadarCrossLine = ReadData(ConfigData["Radar"],{"Crossline"}, false);
-            RadarCFG::RadarCrossLineColor.Value.x = ReadData(ConfigData["Radar"],{"CrosslineColor","r"}, 0.f);
-            RadarCFG::RadarCrossLineColor.Value.y = ReadData(ConfigData["Radar"],{"CrosslineColor","g"}, 0.f);
-            RadarCFG::RadarCrossLineColor.Value.z = ReadData(ConfigData["Radar"],{"CrosslineColor","b"}, 0.f);
-            RadarCFG::RadarCrossLineColor.Value.w = ReadData(ConfigData["Radar"],{"CrosslineColor","a"}, 255.f);
-
+            RadarCFG::ShowRadar  = ReadData(ConfigData["Radar"], {"Enable"}, false);
+            RadarCFG::RadarSize  = ReadData(ConfigData["Radar"], {"Size"},   250.f);
+            RadarCFG::RadarPos.x = ReadData(ConfigData["Radar"], {"PosX"},   35.f);
+            RadarCFG::RadarPos.y = ReadData(ConfigData["Radar"], {"PosY"},   35.f);
         }
 
         if (ConfigData.contains("Triggerbot"))

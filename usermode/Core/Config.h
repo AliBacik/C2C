@@ -90,16 +90,9 @@ namespace ESPConfig
 
 namespace RadarCFG
 {
-	inline bool ShowRadar = false;
-	inline float RadarRange = 125;
-	inline float RadarPointSizeProportion = 1.f;
-	inline bool ShowRadarCrossLine = false;
-	inline ImColor RadarCrossLineColor = ImColor(131, 137, 150, 180);
-	// 0: circle 1: arrow 2: circle with arrow
-	inline int RadarType = 2;
-	inline float Proportion = 2700.f;
-	inline bool customRadar = false;
-	inline float RadarBgAlpha = 0.1f;
+	inline bool  ShowRadar  = false;
+	inline float RadarSize  = 245.f;   // radar penceresinin genisligi/yuksekligi (px)
+	inline ImVec2 RadarPos  = {35.f, 35.f};
 }
 
 namespace MiscCFG

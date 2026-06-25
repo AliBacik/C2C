@@ -179,13 +179,8 @@ namespace ConfigMenu {
 		MenuConfig::WorkInSpec = true;
 
 		RadarCFG::ShowRadar = false;
-		RadarCFG::RadarRange = 125;
-		RadarCFG::ShowRadarCrossLine = false;
-		RadarCFG::RadarCrossLineColor = ImColor(131, 137, 150, 180);
-		RadarCFG::RadarType = 2;
-		RadarCFG::RadarPointSizeProportion = 1.f;
-		RadarCFG::RadarBgAlpha = 0.1f;
-		RadarCFG::Proportion = 2700.f;
+		RadarCFG::RadarSize  = 250.f;
+		RadarCFG::RadarPos   = {35.f, 35.f};
 
 		MenuConfig::TeamCheck = true;
 		MenuConfig::BypassOBS = false;
