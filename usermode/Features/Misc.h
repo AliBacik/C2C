@@ -222,154 +222,167 @@ namespace Misc
 
 namespace TriggerBot
 {
-	using clock_t = std::chrono::steady_clock;
-	using tp_t    = clock_t::time_point;
-
-	// state machine — ana loop'ta her frame Tick() cagrisi ile yonetilir, thread yok
-	static std::atomic<bool> g_shooting{ false };
-	static tp_t g_shotPressAt{};   // mouse down zaman
-	static tp_t g_shotReleaseAt{}; // mouse up zaman
-	static tp_t g_lastShotTime{};  // spam guard
-
-	static inline bool CheckScopeWeapon(const std::string& weapon)
-	{
-		return weapon == "awp" || weapon == "ssg08" || weapon == "scar20" || weapon == "g3sg1";
-	}
-
-	static inline std::string GetWeapon(const CEntity& local)
-	{
-		return local.Pawn.WeaponName;
-	}
+	inline std::chrono::time_point<std::chrono::system_clock> g_LastShotTime;
+	inline std::chrono::time_point<std::chrono::system_clock> g_TargetFoundTime;
+	inline bool g_HasValidTarget = false;
 
 	static inline float RandomJitterF(float base, float stddev)
 	{
 		static std::random_device rd;
 		static std::mt19937 rng(rd());
 		std::normal_distribution<float> dist(base, stddev);
-		float val = dist(rng);
-		return std::clamp(val, base * 0.5f, base + stddev * 3.f);
+		return std::clamp(dist(rng), base * 0.5f, base + stddev * 3.f);
 	}
 
-	// her frame ana loop'ta cagrilir — mouse press/release timing'ini yonetir
-	static inline void Tick()
+	static inline bool CheckScopeWeapon(const std::string& weapon)
 	{
-		if (!g_shooting.load())
-			return;
-
-		auto now = clock_t::now();
-
-		if (now >= g_shotPressAt && now < g_shotReleaseAt)
-		{
-			mouse_click(true);
-		}
-		else if (now >= g_shotReleaseAt)
-		{
-			mouse_click(false);
-			g_shooting = false;
-			g_lastShotTime = now;
-		}
+		return weapon == "awp" || weapon == "ssg08" || weapon == "scar20" || weapon == "g3Sg1";
 	}
 
-	static inline void Schedule(float delayMs)
+	static inline std::string GetWeapon(const CEntity& local)
 	{
-		if (g_shooting.load())
-			return;
+		DWORD64 weaponServices = 0;
+		if (!memoryManager.ReadMemory(local.Pawn.Address + Offset.Pawn.m_pWeaponServices, weaponServices) || weaponServices == 0)
+			return local.Pawn.WeaponName;
 
-		// sol click hotkey degil ama sol click zaten basili ise overlap etme
-		if (TriggerBotCFG::HotKey != VK_LBUTTON && (GetAsyncKeyState(VK_LBUTTON) & 0x8000))
-			return;
+		uint32_t activeWeaponHandle = 0;
+		if (!memoryManager.ReadMemory(weaponServices + Offset.WeaponBaseData.hActiveWeapon, activeWeaponHandle) || activeWeaponHandle == 0)
+			return local.Pawn.WeaponName;
 
-		auto now = clock_t::now();
-		float holdMs = RandomJitterF(12.f, 6.f);
-		g_shotPressAt   = now + std::chrono::microseconds((long long)(delayMs * 1000.f));
-		g_shotReleaseAt = g_shotPressAt + std::chrono::microseconds((long long)(holdMs * 1000.f));
-		g_shooting = true;
+		DWORD64 activeWeapon = CEntity::ResolveEntityHandle(activeWeaponHandle);
+		if (activeWeapon == 0)
+			return local.Pawn.WeaponName;
+
+		short weaponIndex = -1;
+		DWORD64 idxAddr = activeWeapon + Offset.EconEntity.AttributeManager + Offset.WeaponBaseData.Item + Offset.WeaponBaseData.ItemDefinitionIndex;
+		if (!memoryManager.ReadMemory(idxAddr, weaponIndex) || weaponIndex == -1)
+			return local.Pawn.WeaponName;
+
+		auto it = CEntity::weaponNames.find(weaponIndex);
+		return (it != CEntity::weaponNames.end()) ? it->second : "";
 	}
 
-	static inline void Update(const CEntity& localEntity, const std::vector<EntityResult>& entities, int crosshairEntIndex)
+	static inline bool CanTrigger(const CEntity& localEntity, const CEntity& targetEntity, int localPlayerControllerIndex)
+	{
+		if (targetEntity.Pawn.Address == 0)
+			return false;
+
+		if (MenuConfig::TeamCheck && localEntity.Pawn.TeamID == targetEntity.Pawn.TeamID)
+			return false;
+
+		bool waitForNoAttack = false;
+		if (!memoryManager.ReadMemory<bool>(localEntity.Pawn.Address + Offset.Pawn.m_bWaitForNoAttack, waitForNoAttack))
+			return false;
+		if (waitForNoAttack)
+			return false;
+
+		std::string currentWeapon = GetWeapon(localEntity);
+
+		if (TriggerBotCFG::HeadOnly)
+		{
+			// graznak weapon kontrolu — bıçak, nade, c4 vs.
+			if (currentWeapon == "smokegrenade" || currentWeapon == "flashbang" || currentWeapon == "hegrenade" ||
+				currentWeapon == "molotov"  || currentWeapon == "decoy"  || currentWeapon == "incgrenade" ||
+				currentWeapon == "t_knife"  || currentWeapon == "ct_knife" || currentWeapon == "c4")
+				return false;
+		}
+
+		if (CheckScopeWeapon(currentWeapon))
+		{
+			bool isScoped = false;
+			memoryManager.ReadMemory<bool>(localEntity.Pawn.Address + Offset.Pawn.isScoped, isScoped);
+			if (!isScoped)
+				return false;
+		}
+
+		return true;
+	}
+
+	static inline void ExecuteShot()
+	{
+		if (GetAsyncKeyState(VK_LBUTTON) < 0)
+			return;
+
+		g_LastShotTime = std::chrono::system_clock::now();
+
+		// hold süresi: 12ms ± 8ms jitter (her atışta farklı)
+		long long holdUs = (long long)(RandomJitterF(12.f, 8.f) * 1000.f);
+
+		mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+		std::this_thread::sleep_for(std::chrono::microseconds(holdUs));
+		mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+	}
+
+	// legacy compat — Cheats.cpp bunu cagiriyor
+	static inline void Tick() {}
+
+	static inline void Update(const CEntity& localEntity, const std::vector<EntityResult>& /*entities*/, int /*unused*/)
 	{
 		if (!TriggerBotCFG::Enabled)
 			return;
 
-		if (!TriggerBotCFG::AlwaysActive && !(GetAsyncKeyState(TriggerBotCFG::HotKey) & 0x8000))
+		if (MenuConfig::ShowMenu)
 			return;
 
 		if (!localEntity.IsAlive())
 			return;
 
-		if (crosshairEntIndex <= 0)
+		if (!TriggerBotCFG::AlwaysActive && !(GetAsyncKeyState(TriggerBotCFG::HotKey) & 0x8000))
 			return;
 
-		// henuz onceki seri bitmemisse bekle
-		if (g_shooting.load())
-			return;
-
-		// atesler arasi minimum sure (spam onleme)
-		auto now = clock_t::now();
-		long long msSinceLastShot = std::chrono::duration_cast<std::chrono::milliseconds>(now - g_lastShotTime).count();
-		if (msSinceLastShot < 50)
-			return;
-
-		const std::string weapon = GetWeapon(localEntity);
-		if (CheckScopeWeapon(weapon))
+		// m_iIDEntIndex'i oku — cs2'nin crosshair entity handle'i
+		DWORD uHandle = 0;
+		if (!memoryManager.ReadMemory<DWORD>(localEntity.Pawn.Address + Offset.Pawn.iIDEntIndex, uHandle))
 		{
-			bool isScoped = false;
-			memoryManager.ReadMemory<bool>(localEntity.Pawn.Address + Offset.Pawn.isScoped, isScoped);
-			if (!isScoped)
-				return;
+			g_HasValidTarget = false;
+			g_TargetFoundTime = std::chrono::system_clock::now();
+			return;
 		}
 
-		for (const auto& result : entities)
+		if (uHandle == 0 || uHandle == (DWORD)-1)
 		{
-			if (!result.isValid) continue;
-			if (!result.entity.IsAlive()) continue;
-
-			if (MenuConfig::TeamCheck && result.entity.Controller.TeamID == localEntity.Controller.TeamID)
-				continue;
-
-			if ((result.entityIndex + 1) == crosshairEntIndex)
-			{
-				if (TriggerBotCFG::HeadOnly)
-				{
-					// head bone mevcutsa FOV kontrolu yap — deadlocked gibi
-					// BonePosList[head=7] world position, mesafeye gore dinamik radius
-					const auto& bones = result.entity.Pawn.BoneData.BonePosList;
-					if (bones.size() <= BONEINDEX::head)
-						break;
-
-					const Vec3& headPos = bones[BONEINDEX::head].Pos;
-					const Vec3& localPos = localEntity.Pawn.Pos;
-					const Vec2& viewAngle = localEntity.Pawn.ViewAngle; // pitch, yaw
-
-					// local -> head vektoru
-					Vec3 delta = headPos - localPos;
-					float dist = delta.Length();
-					if (dist < 1.f) break;
-
-					// head'e pitch/yaw acisi
-					float targetPitch = -asinf(delta.z / dist) * (180.f / (float)M_PI);
-					float targetYaw   = atan2f(delta.y, delta.x) * (180.f / (float)M_PI);
-
-					// acifark (normalize -180..180)
-					auto normAngle = [](float a) -> float {
-						while (a > 180.f)  a -= 360.f;
-						while (a < -180.f) a += 360.f;
-						return a;
-					};
-					float dPitch = normAngle(targetPitch - viewAngle.x);
-					float dYaw   = normAngle(targetYaw   - viewAngle.y);
-					float fov    = sqrtf(dPitch * dPitch + dYaw * dYaw);
-
-					// head radius fov: deadlocked ile ayni formul (3.5 / dist * 100)
-					float headRadiusFov = 3.5f / dist * 100.f;
-					if (fov > headRadiusFov)
-						break;
-				}
-
-				float jitteredDelay = RandomJitterF((float)TriggerBotCFG::Delay, 20.f);
-				Schedule(jitteredDelay);
-				break;
-			}
+			g_HasValidTarget = false;
+			g_TargetFoundTime = std::chrono::system_clock::now();
+			return;
 		}
+
+		DWORD64 pawnAddress = CEntity::ResolveEntityHandle(uHandle);
+		if (pawnAddress == 0)
+		{
+			g_HasValidTarget = false;
+			g_TargetFoundTime = std::chrono::system_clock::now();
+			return;
+		}
+
+		CEntity targetEntity;
+		if (!targetEntity.UpdatePawn(pawnAddress))
+		{
+			g_HasValidTarget = false;
+			g_TargetFoundTime = std::chrono::system_clock::now();
+			return;
+		}
+
+		if (!CanTrigger(localEntity, targetEntity, 0))
+		{
+			g_HasValidTarget = false;
+			g_TargetFoundTime = std::chrono::system_clock::now();
+			return;
+		}
+
+		if (!g_HasValidTarget)
+			g_TargetFoundTime = std::chrono::system_clock::now();
+		g_HasValidTarget = true;
+
+		auto now = std::chrono::system_clock::now();
+		long long timeSinceLastShot   = std::chrono::duration_cast<std::chrono::milliseconds>(now - g_LastShotTime).count();
+		long long timeSinceTargetFound= std::chrono::duration_cast<std::chrono::milliseconds>(now - g_TargetFoundTime).count();
+
+		// jittered delay: Delay ± 20ms stddev, her hedef bulunduğunda yeniden hesaplanır
+		static long long jitteredDelay = TriggerBotCFG::Delay;
+		if (!g_HasValidTarget)
+			jitteredDelay = (long long)RandomJitterF((float)TriggerBotCFG::Delay, 20.f);
+
+		if (timeSinceLastShot >= 400 && timeSinceTargetFound >= jitteredDelay)
+			ExecuteShot();
 	}
 }

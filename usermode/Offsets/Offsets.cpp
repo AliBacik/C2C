@@ -1,260 +1,94 @@
 #include "Offsets.h"
-#include "../Helpers/SchemaSystem.h"
-#include "../Helpers/PatternScan.h"
+#include "../Helpers/StorageMgr.h"
+#include "../Helpers/WebApi.h"
+#include "../Libs/json/json.hpp"
+#include "../Helpers/Logger.h"
 #include <iostream>
+
+using json = nlohmann::json;
 
 Offsets::Offsets() {}
 Offsets::~Offsets() {}
 
-// client.dll ve schemasystem.dll module boyutlari (genis tutuyoruz, scan erken cikar zaten)
-static constexpr SIZE_T CLIENT_SCAN_SIZE   = 0x6000000; // ~96MB
-static constexpr SIZE_T SCHEMA_MODULE_SIZE = 0x800000;  // ~8MB
-
-void Offsets::UpdateOffsets()
+static DWORD SafeGetDWORD(const json& obj, const std::vector<std::string>& keys, DWORD defaultValue = 0)
 {
-    std::cout << "[Offsets] Runtime offset tarama basliyor...\n";
-
-    DWORD64 clientBase = memoryManager.GetModuleBase(L"client.dll");
-    DWORD64 schemaBase = memoryManager.GetModuleBase(L"schemasystem.dll");
-
-    if (clientBase == 0) {
-        std::cout << "[Offsets] HATA: client.dll bulunamadi\n";
-        return;
-    }
-    if (schemaBase == 0) {
-        std::cout << "[Offsets] HATA: schemasystem.dll bulunamadi\n";
-        return;
-    }
-
-    // ----------------------------------------------------------------
-    // 1. Schema — class field offset'leri
-    // ----------------------------------------------------------------
-    if (!g_schema.Init(schemaBase)) {
-        std::cout << "[Offsets] HATA: SchemaSystem init basarisiz\n";
-        return;
-    }
-
-    auto get = [&](const char* cls, const char* field) -> DWORD {
-        DWORD v = g_schema.Get(cls, field);
-        if (v == 0)
-            std::cout << "[Offsets] UYARI: " << cls << "::" << field << " = 0\n";
-        return v;
-    };
-
-    this->Entity.IsAlive       = get("CCSPlayerController",  "m_bPawnIsAlive");
-    this->Entity.PlayerPawn    = get("CCSPlayerController",  "m_hPlayerPawn");
-    this->Entity.iszPlayerName = get("CBasePlayerController","m_iszPlayerName");
-
-    this->Pawn.BulletServices      = get("C_CSPlayerPawn",              "m_pBulletServices");
-    this->Pawn.CameraServices      = get("C_BasePlayerPawn",            "m_pCameraServices");
-    this->Pawn.pClippingWeapon     = get("C_CSPlayerPawn",              "m_pClippingWeapon");
-    this->Pawn.isScoped            = get("C_CSPlayerPawn",              "m_bIsScoped");
-    this->Pawn.isDefusing          = get("C_CSPlayerPawn",              "m_bIsDefusing");
-    this->Pawn.TotalHit            = get("CCSPlayer_BulletServices",    "m_totalHitsOnServer");
-    this->Pawn.Pos                 = get("C_BaseEntity",                "m_vOldOrigin");
-    this->Pawn.CurrentArmor        = get("C_CSPlayerPawn",              "m_ArmorValue");
-    this->Pawn.MaxHealth           = get("C_BaseEntity",                "m_iMaxHealth");
-    this->Pawn.CurrentHealth       = get("C_BaseEntity",                "m_iHealth");
-    this->Pawn.GameSceneNode       = get("C_BaseEntity",                "m_pGameSceneNode");
-    this->Pawn.BoneArray           = get("CSkeletonInstance",           "m_modelState") + 0x80;
-    this->Pawn.angEyeAngles        = get("C_CSPlayerPawn",              "m_angEyeAngles");
-    this->Pawn.vecLastClipCameraPos= get("C_CSPlayerPawn",              "m_vecLastClipCameraPos");
-    this->Pawn.iShotsFired         = get("C_CSPlayerPawn",              "m_iShotsFired");
-    this->Pawn.flFlashDuration     = get("C_CSPlayerPawnBase",          "m_flFlashDuration");
-    this->Pawn.aimPunchAngle       = get("C_CSPlayerPawn",              "m_aimPunchAngle");
-    this->Pawn.aimPunchCache       = get("C_CSPlayerPawn",              "m_aimPunchCache");
-    this->Pawn.iIDEntIndex         = get("C_CSPlayerPawn",              "m_iIDEntIndex");
-    this->Pawn.iTeamNum            = get("C_BaseEntity",                "m_iTeamNum");
-    this->Pawn.iFovStart           = get("CCSPlayerBase_CameraServices","m_iFOVStart");
-    this->Pawn.fFlags              = get("C_BaseEntity",                "m_fFlags");
-    this->Pawn.bSpottedByMask      = get("C_CSPlayerPawn",              "m_entitySpottedState")
-                                   + get("EntitySpottedState_t",         "m_bSpottedByMask");
-    this->Pawn.AbsVelocity         = get("C_BaseEntity",                "m_vecAbsVelocity");
-    this->Pawn.m_bWaitForNoAttack  = get("C_CSPlayerPawn",              "m_bWaitForNoAttack");
-    this->Pawn.m_pWeaponServices   = get("C_BasePlayerPawn",            "m_pWeaponServices");
-    this->Pawn.m_flEmitSoundTime   = get("C_CSPlayerPawn",              "m_flEmitSoundTime");
-
-    this->PlayerController.m_nTickBase         = get("CBasePlayerController",   "m_nTickBase");
-    this->PlayerController.m_steamID           = get("CBasePlayerController",   "m_steamID");
-    this->PlayerController.m_hPawn             = get("CBasePlayerController",   "m_hPawn");
-    this->PlayerController.m_pObserverServices = get("C_BasePlayerPawn",        "m_pObserverServices");
-    this->PlayerController.m_hObserverTarget   = get("CPlayer_ObserverServices","m_hObserverTarget");
-    this->PlayerController.m_hController       = get("C_BasePlayerPawn",        "m_hController");
-    this->PlayerController.PawnArmor           = get("CCSPlayerController",     "m_iPawnArmor");
-    this->PlayerController.HasDefuser          = get("CCSPlayerController",     "m_bPawnHasDefuser");
-    this->PlayerController.HasHelmet           = get("CCSPlayerController",     "m_bPawnHasHelmet");
-
-    this->EconEntity.AttributeManager          = get("C_EconEntity",            "m_AttributeManager");
-
-    this->WeaponBaseData.WeaponDataPTR         = get("C_BaseEntity",            "m_nSubclassID") + 0x08;
-    this->WeaponBaseData.szName                = get("CCSWeaponBaseVData",       "m_szName");
-    this->WeaponBaseData.Clip1                 = get("C_BasePlayerWeapon",       "m_iClip1");
-    this->WeaponBaseData.MaxClip               = get("CBasePlayerWeaponVData",   "m_iMaxClip1");
-    this->WeaponBaseData.Item                  = get("C_AttributeContainer",     "m_Item");
-    this->WeaponBaseData.ItemDefinitionIndex   = get("C_EconItemView",           "m_iItemDefinitionIndex");
-    this->WeaponBaseData.hMyWeapons            = get("CPlayer_WeaponServices",   "m_hMyWeapons");
-
-    this->C4.m_bBeingDefused     = get("C_PlantedC4", "m_bBeingDefused");
-    this->C4.m_flDefuseCountDown = get("C_PlantedC4", "m_flDefuseCountDown");
-    this->C4.m_flC4Blow          = get("C_PlantedC4", "m_flC4Blow");
-    this->C4.m_flTimerLength     = get("C_PlantedC4", "m_flTimerLength");
-    this->C4.m_nBombSite         = get("C_PlantedC4", "m_nBombSite");
-
-    // ----------------------------------------------------------------
-    // 2. Pattern scan — global pointer'lar (client.dll + offset)
-    //    Deadlocked-rust find_offsets.rs ile ayni pattern'ler.
-    // ----------------------------------------------------------------
-
-    // dwLocalPlayerPawn: "48 83 3D ? ? ? ? 00 0F 95 C0 C3"
+    const json* current = &obj;
+    for (const auto& key : keys)
     {
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "48 83 3D ? ? ? ? 00 0F 95 C0 C3");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match, 3, 8);
-            this->LocalPlayerPawn = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] dwLocalPlayerPawn = 0x" << std::hex << this->LocalPlayerPawn << "\n";
-        } else {
-            std::cout << "[Offsets] HATA: dwLocalPlayerPawn pattern bulunamadi\n";
-        }
+        if (!current->contains(key) || current->at(key).is_null())
+            return defaultValue;
+        current = &current->at(key);
     }
+    if (current->is_number_unsigned() || current->is_number_integer() || current->is_number_float())
+        return current->get<DWORD>();
+    if (current->is_object() && current->contains("offset"))
+        return SafeGetDWORD(*current, {"offset"}, defaultValue);
+    return defaultValue;
+}
 
-    // dwViewMatrix: "C6 83 ? ? 00 00 01 4C 8D 05"
-    {
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "C6 83 ? ? 00 00 01 4C 8D 05");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match + 0x0A, 0, 4);
-            this->Matrix = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] dwViewMatrix = 0x" << std::hex << this->Matrix << "\n";
-        } else {
-            std::cout << "[Offsets] HATA: dwViewMatrix pattern bulunamadi\n";
-        }
-    }
+void Offsets::LoadFromJson()
+{
+    std::string offsetsData  = storage::ReadStorageFile("offsets.json");
+    std::string buttonsData  = storage::ReadStorageFile("buttons.json");
+    std::string clientDllData= storage::ReadStorageFile("client_dll.json");
+    SetOffsets(offsetsData, buttonsData, clientDllData);
+}
 
-    // dwEntityList: "4C 8B 0D ? ? ? ? 4D 85 C9"
-    {
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "4C 8B 0D ? ? ? ? 4D 85 C9");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match, 3, 7);
-            this->EntityList = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] dwEntityList = 0x" << std::hex << this->EntityList << "\n";
-        } else {
-            std::cout << "[Offsets] HATA: dwEntityList pattern bulunamadi\n";
-        }
-    }
+void Offsets::SetOffsets(const std::string& offsetsData, const std::string& buttonsData, const std::string& client_dllData)
+{
+    json offsetsJson    = json::parse(offsetsData);
+    json buttonsJson    = json::parse(buttonsData);
+    json client_dllJson = json::parse(client_dllData)["client.dll"]["classes"];
 
-    // dwLocalPlayerController: "48 8B 05 ? ? ? ? 48 85 C0 74 ? 8B 88"
-    {
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "48 8B 05 ? ? ? ? 48 85 C0 74 ? 8B 88");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match, 3, 7);
-            this->LocalPlayerController = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] dwLocalPlayerController = 0x" << std::hex << this->LocalPlayerController << "\n";
-        } else {
-            std::cout << "[Offsets] HATA: dwLocalPlayerController pattern bulunamadi\n";
-        }
-    }
+    this->EntityList             = SafeGetDWORD(offsetsJson, {"client.dll", "dwEntityList"});
+    this->Matrix                 = SafeGetDWORD(offsetsJson, {"client.dll", "dwViewMatrix"});
+    this->ViewAngle              = SafeGetDWORD(offsetsJson, {"client.dll", "dwViewAngles"});
+    this->LocalPlayerController  = SafeGetDWORD(offsetsJson, {"client.dll", "dwLocalPlayerController"});
+    this->LocalPlayerPawn        = SafeGetDWORD(offsetsJson, {"client.dll", "dwLocalPlayerPawn"});
+    this->GlobalVars             = SafeGetDWORD(offsetsJson, {"client.dll", "dwGlobalVars"});
+    this->PlantedC4              = SafeGetDWORD(offsetsJson, {"client.dll", "dwPlantedC4"});
+    this->InputSystem            = SafeGetDWORD(offsetsJson, {"inputsystem.dll", "dwInputSystem"});
+    this->Sensitivity            = SafeGetDWORD(offsetsJson, {"client.dll", "dwSensitivity"});
+    this->Sensitivity_sensitivity= SafeGetDWORD(offsetsJson, {"client.dll", "dwSensitivity_sensitivity"});
 
-    // dwGlobalVars: "48 8D 05 ? ? ? ? 48 8B 00 8B 48 ? E9"
-    {
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "48 8D 05 ? ? ? ? 48 8B 00 8B 48 ? E9");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match, 3, 7);
-            this->GlobalVars = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] dwGlobalVars = 0x" << std::hex << this->GlobalVars << "\n";
-        } else {
-            std::cout << "[Offsets] HATA: dwGlobalVars pattern bulunamadi\n";
-        }
-    }
+    this->Buttons.Attack = SafeGetDWORD(buttonsJson, {"client.dll", "attack"});
+    this->Buttons.Jump   = SafeGetDWORD(buttonsJson, {"client.dll", "jump"});
+    this->Buttons.Right  = SafeGetDWORD(buttonsJson, {"client.dll", "right"});
+    this->Buttons.Left   = SafeGetDWORD(buttonsJson, {"client.dll", "left"});
 
-    // dwPlantedC4: "48 8D 35 ? ? ? ? 66 0F EF C0 C6 05 ? ? ? ? 01 48 8D 3D"
-    {
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "48 8D 35 ? ? ? ? 66 0F EF C0 C6 05 ? ? ? ? 01 48 8D 3D");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match, 3, 7);
-            this->PlantedC4 = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] dwPlantedC4 = 0x" << std::hex << this->PlantedC4 << "\n";
-        } else {
-            std::cout << "[Offsets] HATA: dwPlantedC4 pattern bulunamadi\n";
-        }
-    }
+    this->Entity.IsAlive       = SafeGetDWORD(client_dllJson, {"CCSPlayerController",   "fields", "m_bPawnIsAlive"});
+    this->Entity.PlayerPawn    = SafeGetDWORD(client_dllJson, {"CCSPlayerController",   "fields", "m_hPlayerPawn"});
+    this->Entity.iszPlayerName = SafeGetDWORD(client_dllJson, {"CBasePlayerController", "fields", "m_iszPlayerName"});
 
-    // dwViewAngles: "48 8B 0D ? ? ? ? F3 0F 11 51 ? F3 0F 11 59"
-    {
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "48 8B 0D ? ? ? ? F3 0F 11 51 ? F3 0F 11 59");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match, 3, 7);
-            this->ViewAngle = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] dwViewAngles = 0x" << std::hex << this->ViewAngle << "\n";
-        } else {
-            std::cout << "[Offsets] HATA: dwViewAngles pattern bulunamadi\n";
-        }
-    }
+    this->Pawn.BulletServices      = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_pBulletServices"});
+    this->Pawn.CameraServices      = SafeGetDWORD(client_dllJson, {"C_BasePlayerPawn",            "fields", "m_pCameraServices"});
+    this->Pawn.pClippingWeapon     = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_pClippingWeapon"});
+    this->Pawn.isScoped            = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_bIsScoped"});
+    this->Pawn.isDefusing          = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_bIsDefusing"});
+    this->Pawn.TotalHit            = SafeGetDWORD(client_dllJson, {"CCSPlayer_BulletServices",    "fields", "m_totalHitsOnServer"});
+    this->Pawn.Pos                 = SafeGetDWORD(client_dllJson, {"C_BasePlayerPawn",            "fields", "m_vOldOrigin"});
+    this->Pawn.CurrentArmor        = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_ArmorValue"});
+    this->Pawn.MaxHealth           = SafeGetDWORD(client_dllJson, {"C_BaseEntity",                "fields", "m_iMaxHealth"});
+    this->Pawn.CurrentHealth       = SafeGetDWORD(client_dllJson, {"C_BaseEntity",                "fields", "m_iHealth"});
+    this->Pawn.GameSceneNode       = SafeGetDWORD(client_dllJson, {"C_BaseEntity",                "fields", "m_pGameSceneNode"});
+    this->Pawn.BoneArray           = SafeGetDWORD(client_dllJson, {"CSkeletonInstance",           "fields", "m_modelState"}) + 0x80;
+    this->Pawn.angEyeAngles        = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_angEyeAngles"});
+    this->Pawn.vecLastClipCameraPos= SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_vecLastClipCameraPos"});
+    this->Pawn.iShotsFired         = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_iShotsFired"});
+    this->Pawn.flFlashDuration     = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawnBase",          "fields", "m_flFlashDuration"});
+    this->Pawn.aimPunchAngle       = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_aimPunchAngle"});
+    this->Pawn.aimPunchCache       = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_aimPunchCache"});
+    this->Pawn.iIDEntIndex         = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_iIDEntIndex"});
+    this->Pawn.iTeamNum            = SafeGetDWORD(client_dllJson, {"C_BaseEntity",                "fields", "m_iTeamNum"});
+    this->Pawn.iFovStart           = SafeGetDWORD(client_dllJson, {"CCSPlayerBase_CameraServices","fields", "m_iFOVStart"});
+    this->Pawn.fFlags              = SafeGetDWORD(client_dllJson, {"C_BaseEntity",                "fields", "m_fFlags"});
+    this->Pawn.bSpottedByMask      = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_entitySpottedState"})
+                                   + SafeGetDWORD(client_dllJson, {"EntitySpottedState_t",         "fields", "m_bSpottedByMask"});
+    this->Pawn.AbsVelocity         = SafeGetDWORD(client_dllJson, {"C_BaseEntity",                "fields", "m_vecAbsVelocity"});
+    this->Pawn.m_bWaitForNoAttack  = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_bWaitForNoAttack"});
+    this->Pawn.m_pWeaponServices   = SafeGetDWORD(client_dllJson, {"C_BasePlayerPawn",            "fields", "m_pWeaponServices"});
+    this->Pawn.m_flEmitSoundTime   = SafeGetDWORD(client_dllJson, {"C_CSPlayerPawn",              "fields", "m_flEmitSoundTime"});
 
-    // dwInputSystem (inputsystem.dll): interface export pointer
-    {
-        DWORD64 inputBase = memoryManager.GetModuleBase(L"inputsystem.dll");
-        if (inputBase) {
-            // "48 8D 05 ? ? ? ? C3 CC CC CC CC 48 8D 05 ? ? ? ? C3 CC CC CC CC 48 8D 05"
-            DWORD64 match = PatternScan::Scan(inputBase, 0x100000,
-                "48 8D 05 ? ? ? ? C3 CC CC CC CC 48 8D 05");
-            if (match) {
-                DWORD64 abs = PatternScan::ResolveRelative(match, 3, 7);
-                this->InputSystem = (DWORD)(abs - inputBase);
-                std::cout << "[Offsets] dwInputSystem = 0x" << std::hex << this->InputSystem << "\n";
-            } else {
-                std::cout << "[Offsets] HATA: dwInputSystem pattern bulunamadi\n";
-            }
-        }
-    }
-
-    // Buttons — dwAttack, dwJump, dwLeft, dwRight
-    // Pattern: "48 8D 05 ? ? ? ? C3" her buton icin farkli context'te
-    // En guvenilir yol: "48 8D 0D ? ? ? ? E8 ? ? ? ? 48 8D 05" gibi buton-specific pattern
-    {
-        // attack: "F3 0F 10 05 ? ? ? ? F3 0F 59 C1"
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "F3 0F 10 05 ? ? ? ? F3 0F 59 C1");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match, 4, 8);
-            this->Buttons.Attack = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] attack = 0x" << std::hex << this->Buttons.Attack << "\n";
-        } else {
-            std::cout << "[Offsets] UYARI: attack pattern bulunamadi\n";
-        }
-    }
-    {
-        // jump: "48 8D 0D ? ? ? ? E8 ? ? ? ? 84 C0 75 ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 84 C0 74"
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "48 8D 0D ? ? ? ? E8 ? ? ? ? 84 C0 75 ? 48 8D 0D ? ? ? ? E8 ? ? ? ? 84 C0 74");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match, 3, 7);
-            this->Buttons.Jump = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] jump = 0x" << std::hex << this->Buttons.Jump << "\n";
-        } else {
-            std::cout << "[Offsets] UYARI: jump pattern bulunamadi\n";
-        }
-    }
-
-    // Sensitivity (cvar pointer)
-    {
-        DWORD64 match = PatternScan::Scan(clientBase, CLIENT_SCAN_SIZE,
-            "48 8B 0D ? ? ? ? 4C 8B C6 F3 0F 10 0D");
-        if (match) {
-            DWORD64 abs = PatternScan::ResolveRelative(match, 3, 7);
-            this->Sensitivity = (DWORD)(abs - clientBase);
-            std::cout << "[Offsets] dwSensitivity = 0x" << std::hex << this->Sensitivity << "\n";
-        }
-        // sensitivity_sensitivity offset schemasystem'de yok, sabit offset
-        this->Sensitivity_sensitivity = 0x58;
-    }
-
-    // GlobalVar struct offsetleri (engine sabitleri, CS2'de degismez)
     this->GlobalVar.RealTime         = 0x00;
     this->GlobalVar.FrameCount       = 0x04;
     this->GlobalVar.MaxClients       = 0x10;
@@ -267,5 +101,94 @@ void Offsets::UpdateOffsets()
     this->GlobalVar.CurrentMap       = 0x0180;
     this->GlobalVar.CurrentMapName   = 0x0188;
 
-    std::cout << "[Offsets] Tum offset'ler hazir.\n";
+    this->PlayerController.m_nTickBase         = SafeGetDWORD(client_dllJson, {"CBasePlayerController",    "fields", "m_nTickBase"});
+    this->PlayerController.m_steamID           = SafeGetDWORD(client_dllJson, {"CBasePlayerController",    "fields", "m_steamID"});
+    this->PlayerController.m_hPawn             = SafeGetDWORD(client_dllJson, {"CBasePlayerController",    "fields", "m_hPawn"});
+    this->PlayerController.m_pObserverServices = SafeGetDWORD(client_dllJson, {"C_BasePlayerPawn",         "fields", "m_pObserverServices"});
+    this->PlayerController.m_hObserverTarget   = SafeGetDWORD(client_dllJson, {"CPlayer_ObserverServices", "fields", "m_hObserverTarget"});
+    this->PlayerController.m_hController       = SafeGetDWORD(client_dllJson, {"C_BasePlayerPawn",         "fields", "m_hController"});
+    this->PlayerController.PawnArmor           = SafeGetDWORD(client_dllJson, {"CCSPlayerController",      "fields", "m_iPawnArmor"});
+    this->PlayerController.HasDefuser          = SafeGetDWORD(client_dllJson, {"CCSPlayerController",      "fields", "m_bPawnHasDefuser"});
+    this->PlayerController.HasHelmet           = SafeGetDWORD(client_dllJson, {"CCSPlayerController",      "fields", "m_bPawnHasHelmet"});
+
+    this->EconEntity.AttributeManager          = SafeGetDWORD(client_dllJson, {"C_EconEntity",             "fields", "m_AttributeManager"});
+
+    this->WeaponBaseData.WeaponDataPTR         = SafeGetDWORD(client_dllJson, {"C_BaseEntity",             "fields", "m_nSubclassID"}) + 0x08;
+    this->WeaponBaseData.szName                = SafeGetDWORD(client_dllJson, {"CCSWeaponBaseVData",        "fields", "m_szName"});
+    this->WeaponBaseData.Clip1                 = SafeGetDWORD(client_dllJson, {"C_BasePlayerWeapon",        "fields", "m_iClip1"});
+    this->WeaponBaseData.MaxClip               = SafeGetDWORD(client_dllJson, {"CBasePlayerWeaponVData",    "fields", "m_iMaxClip1"});
+    this->WeaponBaseData.Item                  = SafeGetDWORD(client_dllJson, {"C_AttributeContainer",      "fields", "m_Item"});
+    this->WeaponBaseData.ItemDefinitionIndex   = SafeGetDWORD(client_dllJson, {"C_EconItemView",            "fields", "m_iItemDefinitionIndex"});
+    this->WeaponBaseData.hMyWeapons            = SafeGetDWORD(client_dllJson, {"CPlayer_WeaponServices",    "fields", "m_hMyWeapons"});
+    this->WeaponBaseData.hActiveWeapon         = SafeGetDWORD(client_dllJson, {"CPlayer_WeaponServices",    "fields", "m_hActiveWeapon"});
+
+    this->C4.m_bBeingDefused     = SafeGetDWORD(client_dllJson, {"C_PlantedC4", "fields", "m_bBeingDefused"});
+    this->C4.m_flDefuseCountDown = SafeGetDWORD(client_dllJson, {"C_PlantedC4", "fields", "m_flDefuseCountDown"});
+    this->C4.m_flC4Blow          = SafeGetDWORD(client_dllJson, {"C_PlantedC4", "fields", "m_flC4Blow"});
+    this->C4.m_flTimerLength     = SafeGetDWORD(client_dllJson, {"C_PlantedC4", "fields", "m_flTimerLength"});
+    this->C4.m_nBombSite         = SafeGetDWORD(client_dllJson, {"C_PlantedC4", "fields", "m_nBombSite"});
+
+    Log::Fine("[Offsets] Tum offsetler yuklendi.");
+}
+
+void Offsets::UpdateOffsets()
+{
+    std::string offsets, buttons, client_dll;
+
+    auto hasValidPayload = [](const std::string& data) {
+        return !data.empty() && data.find("{") != std::string::npos;
+    };
+
+    bool hasLocalFiles = storage::FileExists("offsets.json") &&
+                         storage::FileExists("buttons.json") &&
+                         storage::FileExists("client_dll.json");
+    bool hasValidLocalData = false;
+
+    if (hasLocalFiles)
+    {
+        try
+        {
+            offsets    = storage::ReadStorageFile("offsets.json");
+            buttons    = storage::ReadStorageFile("buttons.json");
+            client_dll = storage::ReadStorageFile("client_dll.json");
+            hasValidLocalData = hasValidPayload(offsets) && hasValidPayload(buttons) && hasValidPayload(client_dll);
+        }
+        catch (...) { hasValidLocalData = false; }
+    }
+
+    bool shouldDownload = !hasValidLocalData;
+
+    if (shouldDownload)
+    {
+        if (!hasLocalFiles)
+            Log::Info("[Offsets] Yerel offset dosyasi bulunamadi, GitHub'dan indiriliyor...");
+        else
+            Log::Warning("[Offsets] Yerel offset dosyasi bozuk, yeni indiriliyor...");
+
+        try
+        {
+            offsets    = Web::Get("https://raw.githubusercontent.com/some-random-guy-ah/cs2-offsets/refs/heads/main/offsets.json");
+            buttons    = Web::Get("https://raw.githubusercontent.com/some-random-guy-ah/cs2-offsets/refs/heads/main/buttons.json");
+            client_dll = Web::Get("https://raw.githubusercontent.com/some-random-guy-ah/cs2-offsets/refs/heads/main/client_dll.json");
+
+            if (!hasValidPayload(offsets) || !hasValidPayload(buttons) || !hasValidPayload(client_dll))
+                throw std::runtime_error("Indirilen offset verisi gecersiz");
+
+            storage::WriteStorageFile("offsets.json",    offsets);
+            storage::WriteStorageFile("buttons.json",    buttons);
+            storage::WriteStorageFile("client_dll.json", client_dll);
+            Log::Fine("[Offsets] GitHub'dan basariyla indirildi ve kaydedildi.");
+        }
+        catch (const std::exception& e)
+        {
+            Log::Error(std::string("[Offsets] Indirme basarisiz: ") + e.what());
+            throw std::runtime_error("Offset yuklenemedi. Data klasorune offsets.json/buttons.json/client_dll.json koyun.");
+        }
+    }
+    else
+    {
+        Log::Info("[Offsets] Yerel offset dosyalari okunuyor...");
+    }
+
+    SetOffsets(offsets, buttons, client_dll);
 }

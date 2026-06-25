@@ -87,15 +87,10 @@ void Cheats::Run()
 	// process entities
 	auto entityResults = ProcessEntities(LocalEntity, LocalPlayerControllerIndex);
 
-	// crosshair ent
-	int crosshairEnt = 0;
-	memoryManager.ReadMemory<int>(LocalPawnAddress + Offset.Pawn.iIDEntIndex, crosshairEnt);
-
 	// triggerbot
-	bool tbFired = TriggerBot::g_shooting.load();
-	TriggerBot::Tick();
-	TriggerBot::Update(LocalEntity, entityResults, crosshairEnt);
-	bool tbFiredNow = !tbFired && TriggerBot::g_shooting.load();
+	bool tbFiredBefore = TriggerBot::g_HasValidTarget;
+	TriggerBot::Update(LocalEntity, entityResults, 0);
+	bool tbFiredNow = !tbFiredBefore && TriggerBot::g_HasValidTarget;
 
 	// analytics
 	Analytics::Update(LocalEntity, entityResults, tbFiredNow);

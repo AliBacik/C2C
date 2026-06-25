@@ -8,6 +8,8 @@ public:
 	Offsets();
 	~Offsets();
 	void UpdateOffsets();
+	void LoadFromJson();
+	void SetOffsets(const std::string& offsetsData, const std::string& buttonsData, const std::string& client_dllData);
 
 	DWORD EntityList;
 	DWORD Matrix;
@@ -110,6 +112,7 @@ public:
 		DWORD Item;
 		DWORD ItemDefinitionIndex;
 		DWORD hMyWeapons;
+		DWORD hActiveWeapon;
 	} WeaponBaseData;
 
 	struct

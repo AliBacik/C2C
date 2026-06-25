@@ -1,5 +1,6 @@
 #include "SchemaSystem.h"
 #include <iostream>
+#include <algorithm>
 
 std::string SchemaSystem::ReadString(DWORD64 address) const
 {
@@ -110,7 +111,7 @@ bool SchemaSystem::Init(DWORD64 schemaModuleBase)
 
     for (SIZE_T off = 0; off < MODULE_SIZE && schemaSystemPtr == 0; off += CHUNK)
     {
-        SIZE_T readSize = min(CHUNK + OVERLAP, MODULE_SIZE - off);
+        SIZE_T readSize = (std::min)(CHUNK + OVERLAP, MODULE_SIZE - off);
         if (!memoryManager.ReadMemory(schemaModuleBase + off, buf[0], readSize))
             continue;
 
